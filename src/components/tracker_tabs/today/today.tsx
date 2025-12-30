@@ -1,35 +1,10 @@
 "use client";
 
+import { CategoryMap, DEFAULT_CATEGORIES, Expense } from "@/components/constants/types";
 import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
-import { Toaster, toast } from 'sonner'
+import { toast } from 'sonner'
 
-
-/* ---------- Types ---------- */
-
-type Category = {
-    id: string;
-    name: string;
-    emoji: string;
-};
-
-type Expense = {
-    id: string;
-    category: Category;
-    title: string;
-    description?: string;
-    amount: number;
-    createdAt: number;
-};
-
-/* ---------- Static Data ---------- */
-
-const categories: Category[] = [
-    { id: "food", name: "Food", emoji: "🍔" },
-    { id: "coffee", name: "Coffee", emoji: "☕" },
-    { id: "travel", name: "Travel", emoji: "🚕" },
-    { id: "shopping", name: "Shopping", emoji: "🛍️" },
-];
 
 /* ---------- IndexedDB Helpers ---------- */
 
@@ -85,7 +60,7 @@ export const TodayTab = () => {
     const [ loading, setLoading ] = useState( true );
     const [ showForm, setShowForm ] = useState( false );
 
-    const [ categoryId, setCategoryId ] = useState( categories[ 0 ].id );
+    const [ categoryId, setCategoryId ] = useState( DEFAULT_CATEGORIES[ 0 ].id );
     const [ title, setTitle ] = useState( "" );
     const [ description, setDescription ] = useState( "" );
     const [ amount, setAmount ] = useState( "" );
@@ -93,20 +68,27 @@ export const TodayTab = () => {
     /* Load from IndexedDB */
     useEffect( () => {
         getAllExpenses()
-            .then( ( data ) =>
-                setExpenses( data.sort( ( a, b ) => b.createdAt - a.createdAt ) )
-            )
+            .then( ( data ) => {
+                const normalized = data
+                    .map( ( e ) => {
+                        // Backward compatibility: older records stored the whole category object.
+                        const legacyCategoryId = ( e as any ).category?.id;
+                        const categoryId = ( e as any ).categoryId || legacyCategoryId || DEFAULT_CATEGORIES[ 0 ].id;
+                        return { ...e, categoryId } as Expense;
+                    } )
+                    .sort( ( a, b ) => b.createdAt - a.createdAt );
+
+                setExpenses( normalized );
+            } )
             .finally( () => setLoading( false ) );
     }, [] );
 
     const addExpense = async () => {
         if ( !title || !amount ) return;
 
-        const category = categories.find( ( c ) => c.id === categoryId )!;
-
         const expense: Expense = {
             id: crypto.randomUUID(),
-            category,
+            categoryId,
             title,
             description: description || undefined,
             amount: Number( amount ),
@@ -148,52 +130,56 @@ export const TodayTab = () => {
                 ) : (
                     <div className="rounded-lg border border-neutral-200 bg-white p-3">
                         <ul className="space-y-3">
-                            { expenses.map( ( e ) => (
-                                <li
-                                    key={ e.id }
-                                    className="grid grid-cols-[auto_1fr_auto] gap-3 items-start rounded-lg border border-neutral-200 p-3"
-                                >
-                                    {/* Column 1 */ }
-                                    <div className="flex flex-col items-center gap-1 min-w-12">
-                                        <span className="text-lg">{ e.category.emoji }</span>
-                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-200 text-neutral-700">
-                                            { e.category.name }
-                                        </span>
-                                    </div>
+                            { expenses.map( ( e ) => {
+                                const category = CategoryMap[ e.categoryId ] || DEFAULT_CATEGORIES[ 0 ];
+                                const { icon: CategoryIcon, name: categoryName } = category;
+                                return (
+                                    <li
+                                        key={ e.id }
+                                        className="grid grid-cols-[auto_1fr_auto] gap-3 items-start rounded-lg border border-neutral-200 p-3"
+                                    >
+                                        {/* Column 1 */ }
+                                        <div className="flex flex-col items-center gap-1 min-w-12">
+                                            { CategoryIcon && <CategoryIcon size={ 20 } /> }
+                                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-200 text-neutral-700">
+                                                { categoryName }
+                                            </span>
+                                        </div>
 
-                                    {/* Column 2 */ }
-                                    <div className="flex flex-col justify-center leading-snug">
-                                        <span className="font-medium">{ e.title }</span>
-                                        <span className="text-sm text-neutral-500">
-                                            { e.description || "N/A" }
-                                        </span>
-                                        {/* Actions */ }
-                                        <button
-                                            onClick={ () => editExpense( e.id ) }
-                                            className="mt-1 text-xs text-neutral-400 hover:text-blue-500 self-start"
-                                        >
-                                            Edit
-                                        </button>
-                                    </div>
+                                        {/* Column 2 */ }
+                                        <div className="flex flex-col justify-center leading-snug">
+                                            <span className="font-medium">{ e.title }</span>
+                                            <span className="text-sm text-neutral-500">
+                                                { e.description || "N/A" }
+                                            </span>
+                                            {/* Actions */ }
+                                            <button
+                                                onClick={ () => editExpense( e.id ) }
+                                                className="mt-1 text-xs text-neutral-400 hover:text-blue-500 self-start"
+                                            >
+                                                Edit
+                                            </button>
+                                        </div>
 
-                                    {/* Column 3 */ }
-                                    <div className="flex flex-col items-end gap-1">
-                                        <span className="font-semibold">₹{ e.amount }</span>
-                                        <span className="text-xs text-neutral-400">
-                                            { new Date( e.createdAt ).toLocaleTimeString( [], {
-                                                hour: "2-digit",
-                                                minute: "2-digit",
-                                            } ) }
-                                        </span>
-                                        <button
-                                            onClick={ () => deleteExpense( e.id ) }
-                                            className="text-xs text-neutral-400 hover:text-red-500"
-                                        >
-                                            Delete
-                                        </button>
-                                    </div>
-                                </li>
-                            ) ) }
+                                        {/* Column 3 */ }
+                                        <div className="flex flex-col items-end gap-1">
+                                            <span className="font-semibold">₹{ e.amount }</span>
+                                            <span className="text-xs text-neutral-400">
+                                                { new Date( e.createdAt ).toLocaleTimeString( [], {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                } ) }
+                                            </span>
+                                            <button
+                                                onClick={ () => deleteExpense( e.id ) }
+                                                className="text-xs text-neutral-400 hover:text-red-500"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </li>
+                                )
+                            } ) }
                         </ul>
                     </div>
                 )
@@ -208,11 +194,17 @@ export const TodayTab = () => {
                             onChange={ ( e ) => setCategoryId( e.target.value ) }
                             className="w-full border p-2 rounded"
                         >
-                            { categories.map( ( c ) => (
-                                <option key={ c.id } value={ c.id }>
-                                    { c.emoji } { c.name }
-                                </option>
-                            ) ) }
+                            { DEFAULT_CATEGORIES.map( ( c ) => {
+                                // const { icon: Icon } = c;
+                                // In HTML, <svg> cannot be a child of <option>.
+                                // react-icons return SVG elements, so we need to workaround this limitation.
+                                // we can implement a custom dropdown later if needed.
+                                return (
+                                    <option key={ c.id } value={ c.id }>
+                                        { c.name }
+                                    </option>
+                                )
+                            } ) }
                         </select>
 
                         <input
