@@ -40,7 +40,7 @@ export const MoreTab = () => {
 
                 <button
                     onClick={ handleDeleteAll }
-                    className="w-full py-2 rounded bg-red-500 text-white font-medium hover:bg-red-600"
+                    className="w-full py-2 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600"
                 >
                     Delete All Data
                 </button>
