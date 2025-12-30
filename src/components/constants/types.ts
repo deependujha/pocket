@@ -19,6 +19,8 @@ export type Category = {
     id: string;
     name: string;
     icon: IconType;
+    color: string;
+
 };
 
 /* ---------- Default Categories ---------- */
@@ -30,62 +32,19 @@ export type Category = {
 */
 
 export const DEFAULT_CATEGORIES: Category[] = [
-    {
-        id: "food",
-        name: "Food",
-        icon: FcShop,
-    },
-    {
-        id: "travel",
-        name: "Travel",
-        icon: FcShipped,
-    },
-    {
-        id: "accessories",
-        name: "Accessories",
-        icon: FcInTransit,
-    },
-    {
-        id: "harmful",
-        name: "Smoking / Drinking",
-        icon: FcHighPriority,
-    },
-    {
-        id: "clothes",
-        name: "Clothes",
-        icon: FcPaid,
-    },
-    {
-        id: "kitchen",
-        name: "Kitchen",
-        icon: FcHome,
-    },
-    {
-        id: "washroom",
-        name: "Washroom",
-        icon: FcSupport,
-    },
-    {
-        id: "personal",
-        name: "Personal",
-        icon: FcBusinessman,
-    },
-    {
-        id: "sent",
-        name: "Sent Money",
-        icon: FcMoneyTransfer,
-    },
-    {
-        id: "custom",
-        name: "Custom",
-        icon: FcPlus,
-    },
-    {
-        id: "other",
-        name: "Other",
-        icon: FcPackage,
-    },
+    { id: "food", name: "Food", icon: FcShop, color: "#60a5fa" },
+    { id: "travel", name: "Travel", icon: FcShipped, color: "#34d399" },
+    { id: "accessories", name: "Accessories", icon: FcInTransit, color: "#a78bfa" },
+    { id: "harmful", name: "Smoking / Drinking", icon: FcHighPriority, color: "#f87171" },
+    { id: "clothes", name: "Clothes", icon: FcPaid, color: "#fbbf24" },
+    { id: "kitchen", name: "Kitchen", icon: FcHome, color: "#22d3ee" },
+    { id: "washroom", name: "Washroom", icon: FcSupport, color: "#fb7185" },
+    { id: "personal", name: "Personal", icon: FcBusinessman, color: "#c084fc" },
+    { id: "sent", name: "Sent Money", icon: FcMoneyTransfer, color: "#94a3b8" },
+    { id: "custom", name: "Custom", icon: FcPlus, color: "#f472b6" },
+    { id: "other", name: "Other", icon: FcPackage, color: "#a3a3a3" },
 ];
+
 
 export const CategoryMap = DEFAULT_CATEGORIES.reduce( ( map, category ) => {
     map[ category.id ] = category;
@@ -100,3 +59,10 @@ export type Expense = {
     amount: number;
     createdAt: number;
 };
+
+export type PieDatum = {
+    name: string;
+    value: number;
+    fill: string;
+};
+

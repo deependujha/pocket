@@ -1,57 +1,11 @@
 "use client";
 
 import { CategoryMap, DEFAULT_CATEGORIES, Expense } from "@/components/constants/types";
+import { deleteExpenseFromDB, getTodayExpenses, saveExpense } from "@/db/index_db_helper";
 import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
-import { toast } from 'sonner'
+import { toast } from "sonner";
 
-
-/* ---------- IndexedDB Helpers ---------- */
-
-const DB_NAME = "expense-tracker";
-const STORE_NAME = "expenses";
-const DB_VERSION = 1;
-
-const openDB = (): Promise<IDBDatabase> =>
-    new Promise( ( resolve, reject ) => {
-        const request = indexedDB.open( DB_NAME, DB_VERSION );
-
-        request.onupgradeneeded = () => {
-            const db = request.result;
-            if ( !db.objectStoreNames.contains( STORE_NAME ) ) {
-                db.createObjectStore( STORE_NAME, { keyPath: "id" } );
-            }
-        };
-
-        request.onsuccess = () => resolve( request.result );
-        request.onerror = () => reject( request.error );
-    } );
-
-const getAllExpenses = async (): Promise<Expense[]> => {
-    const db = await openDB();
-    return new Promise( ( resolve ) => {
-        const tx = db.transaction( STORE_NAME, "readonly" );
-        const store = tx.objectStore( STORE_NAME );
-        const req = store.getAll();
-        req.onsuccess = () => resolve( req.result as Expense[] );
-    } );
-};
-
-const saveExpense = async ( expense: Expense ) => {
-    const db = await openDB();
-    db.transaction( STORE_NAME, "readwrite" )
-        .objectStore( STORE_NAME )
-        .put( expense );
-    toast.success( 'Expense added successfully!' );
-};
-
-const deleteExpenseFromDB = async ( id: string ) => {
-    const db = await openDB();
-    db.transaction( STORE_NAME, "readwrite" )
-        .objectStore( STORE_NAME )
-        .delete( id );
-    toast.error( 'Expense deleted successfully!' );
-};
 
 /* ---------- Component ---------- */
 
@@ -67,7 +21,7 @@ export const TodayTab = () => {
 
     /* Load from IndexedDB */
     useEffect( () => {
-        getAllExpenses()
+        getTodayExpenses()
             .then( ( data ) => {
                 const normalized = data
                     .map( ( e ) => {
