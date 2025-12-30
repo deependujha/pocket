@@ -1,20 +1,16 @@
 @import "tailwindcss";
 
-*{
-  background-color: black;
-}
-
-/* Full-height, dark-only baseline */
+/* Full-height, light-only baseline */
 html,
 body {
   height: 100%;
-  background: #0a0a0a;
+  background: #ffffff;
 }
 
 /* Single source of truth */
 :root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --background: #ffffff;
+  --foreground: #171717;
 }
 
 /* Tailwind theme bindings */
