@@ -185,7 +185,7 @@ export const TodayTab = () => {
 
                         <button
                             onClick={ addExpense }
-                            className="w-full bg-black text-white py-2 rounded font-medium"
+                            className="w-full bg-black text-white py-2 rounded-4xl font-medium"
                         >
                             Add Expense
                         </button>
