@@ -90,7 +90,7 @@ export const HistoryTab = () => {
                                 return (
                                     <li
                                         key={ e.id }
-                                        className="grid grid-cols-[auto_1fr_auto] gap-3 rounded-lg border border-neutral-200 p-3"
+                                        className="grid grid-cols-[auto_1fr_auto] gap-3 rounded-lg border border-neutral-200 p-3 items-center"
                                     >
                                         {/* Column 1 */ }
                                         <div className="flex flex-col items-center gap-1 min-w-12">
