@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
+import { Toaster, toast } from 'sonner'
+
 
 /* ---------- Types ---------- */
 
@@ -29,10 +31,58 @@ const categories: Category[] = [
     { id: "shopping", name: "Shopping", emoji: "🛍️" },
 ];
 
+/* ---------- IndexedDB Helpers ---------- */
+
+const DB_NAME = "expense-tracker";
+const STORE_NAME = "expenses";
+const DB_VERSION = 1;
+
+const openDB = (): Promise<IDBDatabase> =>
+    new Promise( ( resolve, reject ) => {
+        const request = indexedDB.open( DB_NAME, DB_VERSION );
+
+        request.onupgradeneeded = () => {
+            const db = request.result;
+            if ( !db.objectStoreNames.contains( STORE_NAME ) ) {
+                db.createObjectStore( STORE_NAME, { keyPath: "id" } );
+            }
+        };
+
+        request.onsuccess = () => resolve( request.result );
+        request.onerror = () => reject( request.error );
+    } );
+
+const getAllExpenses = async (): Promise<Expense[]> => {
+    const db = await openDB();
+    return new Promise( ( resolve ) => {
+        const tx = db.transaction( STORE_NAME, "readonly" );
+        const store = tx.objectStore( STORE_NAME );
+        const req = store.getAll();
+        req.onsuccess = () => resolve( req.result as Expense[] );
+    } );
+};
+
+const saveExpense = async ( expense: Expense ) => {
+    const db = await openDB();
+    db.transaction( STORE_NAME, "readwrite" )
+        .objectStore( STORE_NAME )
+        .put( expense );
+    toast.success( 'Expense added successfully!' );
+};
+
+const deleteExpenseFromDB = async ( id: string ) => {
+    const db = await openDB();
+    db.transaction( STORE_NAME, "readwrite" )
+        .objectStore( STORE_NAME )
+        .delete( id );
+    toast.error( 'Expense deleted successfully!' );
+};
+
 /* ---------- Component ---------- */
 
 export const TodayTab = () => {
     const [ expenses, setExpenses ] = useState<Expense[]>( [] );
+    const [ loading, setLoading ] = useState( true );
     const [ showForm, setShowForm ] = useState( false );
 
     const [ categoryId, setCategoryId ] = useState( categories[ 0 ].id );
@@ -40,22 +90,31 @@ export const TodayTab = () => {
     const [ description, setDescription ] = useState( "" );
     const [ amount, setAmount ] = useState( "" );
 
-    const addExpense = () => {
+    /* Load from IndexedDB */
+    useEffect( () => {
+        getAllExpenses()
+            .then( ( data ) =>
+                setExpenses( data.sort( ( a, b ) => b.createdAt - a.createdAt ) )
+            )
+            .finally( () => setLoading( false ) );
+    }, [] );
+
+    const addExpense = async () => {
         if ( !title || !amount ) return;
 
         const category = categories.find( ( c ) => c.id === categoryId )!;
 
-        setExpenses( ( prev ) => [
-            {
-                id: crypto.randomUUID(),
-                category,
-                title,
-                description: description || undefined,
-                amount: Number( amount ),
-                createdAt: Date.now(),
-            },
-            ...prev,
-        ] );
+        const expense: Expense = {
+            id: crypto.randomUUID(),
+            category,
+            title,
+            description: description || undefined,
+            amount: Number( amount ),
+            createdAt: Date.now(),
+        };
+
+        setExpenses( ( prev ) => [ expense, ...prev ] );
+        await saveExpense( expense );
 
         setTitle( "" );
         setDescription( "" );
@@ -63,62 +122,76 @@ export const TodayTab = () => {
         setShowForm( false );
     };
 
-    const deleteExpense = ( id: string ) => {
+    const deleteExpense = async ( id: string ) => {
         setExpenses( ( prev ) => prev.filter( ( e ) => e.id !== id ) );
+        await deleteExpenseFromDB( id );
     };
+
+    const editExpense = ( id: string ) => {
+        toast.warning( "Edit functionality is not implemented yet." );
+    }
 
     return (
         <div className="relative h-full p-4">
-            {/* Expense List */ }
-            <ul className="space-y-3">
-                { expenses.map( ( e ) => (
-                    <li
-                        key={ e.id }
-                        className="grid grid-cols-[auto_1fr_auto] gap-3 items-start rounded-lg border border-neutral-200 p-3"
-                    >
-                        {/* Column 1: Emoji + Category */ }
-                        <div className="flex flex-col items-center gap-1 min-w-[48px]">
-                            <span className="text-lg">{ e.category.emoji }</span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-200 text-neutral-700">
-                                { e.category.name }
-                            </span>
-                        </div>
+            {/* Loading state */ }
+            { loading && (
+                <div className="flex h-full items-center justify-center text-neutral-400">
+                    Loading expenses…
+                </div>
+            ) }
 
-                        {/* Column 2: Title + Description */ }
-                        <div className="flex flex-col justify-center leading-snug">
-                            <span className="font-medium leading-snug">
-                                { e.title }
-                            </span>
-                            { e.description && (
-                                <span className="text-sm text-neutral-500 leading-snug">
-                                    { e.description }
+            { !loading && (
+                <ul className="space-y-3">
+                    { expenses.map( ( e ) => (
+                        <li
+                            key={ e.id }
+                            className="grid grid-cols-[auto_1fr_auto] gap-3 items-start rounded-lg border border-neutral-200 p-3"
+                        >
+                            {/* Column 1 */ }
+                            <div className="flex flex-col items-center gap-1 min-w-[48px]">
+                                <span className="text-lg">{ e.category.emoji }</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-200 text-neutral-700">
+                                    { e.category.name }
                                 </span>
-                            ) }
-                        </div>
+                            </div>
 
-                        {/* Column 3: Amount + Time + Delete */ }
-                        <div className="flex flex-col items-end gap-1">
-                            <span className="font-semibold">₹{ e.amount }</span>
+                            {/* Column 2 */ }
+                            <div className="flex flex-col justify-center leading-snug">
+                                <span className="font-medium">{ e.title }</span>
+                                <span className="text-sm text-neutral-500">
+                                    { e.description || "N/A" }
+                                </span>
+                                {/* Actions */ }
+                                <button
+                                    onClick={ () => editExpense( e.id ) }
+                                    className="mt-1 text-xs text-neutral-400 hover:text-blue-500 self-start"
+                                >
+                                    Edit
+                                </button>
+                            </div>
 
-                            <span className="text-xs text-neutral-400">
-                                { new Date( e.createdAt ).toLocaleTimeString( [], {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                } ) }
-                            </span>
+                            {/* Column 3 */ }
+                            <div className="flex flex-col items-end gap-1">
+                                <span className="font-semibold">₹{ e.amount }</span>
+                                <span className="text-xs text-neutral-400">
+                                    { new Date( e.createdAt ).toLocaleTimeString( [], {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                    } ) }
+                                </span>
+                                <button
+                                    onClick={ () => deleteExpense( e.id ) }
+                                    className="text-xs text-neutral-400 hover:text-red-500"
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </li>
+                    ) ) }
+                </ul>
+            ) }
 
-                            <button
-                                onClick={ () => deleteExpense( e.id ) }
-                                className="text-xs text-neutral-400 hover:text-red-500 transition-colors"
-                            >
-                                Delete
-                            </button>
-                        </div>
-                    </li>
-                ) ) }
-            </ul>
-
-            {/* Add Expense Form (Bottom Sheet) */ }
+            {/* Bottom Sheet */ }
             { showForm && (
                 <div className="fixed inset-0 bg-black/30 flex items-end z-50">
                     <div className="w-full rounded-t-xl bg-background p-4 space-y-3">
@@ -166,13 +239,15 @@ export const TodayTab = () => {
                 </div>
             ) }
 
-            {/* Floating Add Button */ }
-            <button
-                onClick={ () => setShowForm( true ) }
-                className="fixed bottom-20 right-4 h-12 w-12 rounded-full bg-black text-white flex items-center justify-center shadow-lg"
-            >
-                <FiPlus size={ 22 } />
-            </button>
+            {/* FAB */ }
+            { !loading && (
+                <button
+                    onClick={ () => setShowForm( true ) }
+                    className="fixed bottom-20 right-4 h-12 w-12 rounded-full bg-black text-white flex items-center justify-center shadow-lg"
+                >
+                    <FiPlus size={ 22 } />
+                </button>
+            ) }
         </div>
     );
 };
