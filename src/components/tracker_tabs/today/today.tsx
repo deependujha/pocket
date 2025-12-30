@@ -148,7 +148,7 @@ export const TodayTab = () => {
                             className="grid grid-cols-[auto_1fr_auto] gap-3 items-start rounded-lg border border-neutral-200 p-3"
                         >
                             {/* Column 1 */ }
-                            <div className="flex flex-col items-center gap-1 min-w-[48px]">
+                            <div className="flex flex-col items-center gap-1 min-w-12">
                                 <span className="text-lg">{ e.category.emoji }</span>
                                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-200 text-neutral-700">
                                     { e.category.name }
