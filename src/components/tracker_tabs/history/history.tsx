@@ -113,7 +113,7 @@ export const HistoryTab = () => {
                                             </span>
                                             <button
                                                 onClick={ onEdit }
-                                                className="mt-1 text-xs text-neutral-400 hover:text-neutral-600 self-start"
+                                                className="mt-1 text-xs text-neutral-400 hover:text-neutral-600 self-start cursor-pointer"
                                             >
                                                 Edit
                                             </button>
@@ -134,7 +134,7 @@ export const HistoryTab = () => {
                                             </span>
                                             <button
                                                 onClick={ onDelete }
-                                                className="text-xs text-neutral-400 hover:text-neutral-600"
+                                                className="text-xs text-neutral-400 hover:text-neutral-600 cursor-pointer"
                                             >
                                                 Delete
                                             </button>

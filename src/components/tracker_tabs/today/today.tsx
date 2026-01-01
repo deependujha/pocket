@@ -183,7 +183,7 @@ export const TodayTab = () => {
                                         </span>
                                         <button
                                             onClick={ () => editExpense( e.id ) }
-                                            className="mt-1 text-xs text-neutral-400 hover:text-blue-500 self-start"
+                                            className="mt-1 text-xs text-neutral-400 hover:text-blue-500 self-start cursor-pointer"
                                         >
                                             Edit
                                         </button>
@@ -202,7 +202,7 @@ export const TodayTab = () => {
                                         </span>
                                         <button
                                             onClick={ () => deleteExpense( e.id ) }
-                                            className="text-xs text-neutral-400 hover:text-red-500"
+                                            className="text-xs text-neutral-400 hover:text-red-500 cursor-pointer"
                                         >
                                             Delete
                                         </button>
@@ -256,14 +256,14 @@ export const TodayTab = () => {
                         <div className="flex gap-3 pt-2">
                             <button
                                 onClick={ resetForm }
-                                className="flex-1 border border-neutral-300 text-neutral-600 py-2 rounded-xl font-medium"
+                                className="flex-1 border border-neutral-300 text-neutral-600 py-2 rounded-xl font-medium cursor-pointer"
                             >
                                 Cancel
                             </button>
 
                             <button
                                 onClick={ saveOrUpdateExpense }
-                                className="flex-1 bg-black text-white py-2 rounded-xl font-medium"
+                                className="flex-1 bg-black text-white py-2 rounded-xl font-medium cursor-pointer"
                             >
                                 { editingId ? "Update" : "Add" }
                             </button>
@@ -277,7 +277,7 @@ export const TodayTab = () => {
             { !loading && (
                 <button
                     onClick={ () => setShowForm( true ) }
-                    className="fixed bottom-20 right-4 h-12 w-12 rounded-full bg-black text-white flex items-center justify-center shadow-lg"
+                    className="fixed bottom-20 right-4 h-12 w-12 rounded-full bg-black text-white flex items-center justify-center shadow-lg cursor-pointer"
                 >
                     <FiPlus size={ 22 } />
                 </button>

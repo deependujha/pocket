@@ -1,7 +1,7 @@
+"use client";
 import { LoginPage } from "@/components/pages/login/login";
 import { TrackerPage } from "@/components/pages/tracker/tracker";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { useSession, signIn, signOut } from "next-auth/react"
 
 
 type PageProps = {
@@ -10,16 +10,14 @@ type PageProps = {
   }>;
 };
 
-export default async function Home( { searchParams }: PageProps ) {
-  const cookieStore = cookies();
-  const session = ( await cookieStore ).get( "session" );
+export function Home( { searchParams }: PageProps ) {
+  const { data: session } = useSession()
 
   // Logged-in user
-  // temporarily bypassing auth for development
-  if ( session || true ) {
+  if ( session ) {
     return <TrackerPage />;
   }
-
-  // Default
   return <LoginPage />;
 }
+
+export default Home;

@@ -24,7 +24,7 @@ export const MonthScroller = ( {
                         <button
                             key={ `${m.year}-${m.month}` }
                             onClick={ () => onSelect( m ) }
-                            className={ `px-3 py-1.5 rounded-full text-sm whitespace-nowrap border
+                            className={ `px-3 py-1.5 rounded-full text-sm whitespace-nowrap border cursor-pointer
                 ${isActive
                                     ? "bg-black text-white border-black"
                                     : "bg-white text-neutral-600 border-neutral-300"

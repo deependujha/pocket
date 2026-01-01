@@ -32,7 +32,7 @@ export type Category = {
 */
 
 export const DEFAULT_CATEGORIES: Category[] = [
-    { id: "food", name: "Groceries", icon: FcShop, color: "#60a5fa" },
+    { id: "groceries", name: "Groceries", icon: FcShop, color: "#60a5fa" },
     { id: "travel", name: "Travel", icon: FcShipped, color: "#34d399" },
     { id: "accessories", name: "Accessories", icon: FcInTransit, color: "#a78bfa" },
     { id: "harmful", name: "Smoking / Drinking", icon: FcHighPriority, color: "#f87171" },

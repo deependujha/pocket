@@ -1,51 +1,56 @@
 "use client";
 
-import { clearAllData } from "@/db/index_db_helper";
-import { toast } from "sonner";
+import { useSession, signOut } from "next-auth/react";
 import { FaUser } from "react-icons/fa6";
-import { CURRENT_VERSION } from "@/constants/version"
-
-
-
+import { LogOut } from "lucide-react";
+import { CURRENT_VERSION } from "@/constants/version";
 
 export const MoreTab = () => {
-    const handleDeleteAll = async () => {
-        const confirmed = window.confirm(
-            "This will permanently delete all your expenses. This action cannot be undone."
-        );
-
-        if ( !confirmed ) return;
-
-        await clearAllData();
-        toast.error( "All expense data deleted" );
-
-        // simple reload to reset state everywhere
-        window.location.reload();
-    };
+    const { data: session } = useSession();
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center gap-8 p-4">
-            {/* Account section */ }
-            <div className="flex flex-col items-center gap-3">
-                <div className="h-20 w-20 rounded-full bg-neutral-200 flex items-center justify-center text-neutral-500 text-2xl">
-                    <FaUser size={ 40 } />
+        <div className="flex min-h-screen flex-col items-center justify-between p-6">
+            {/* Profile */ }
+            <div className="flex flex-col items-center gap-4 mt-12">
+                <div className="h-24 w-24 rounded-full bg-neutral-200 overflow-hidden flex items-center justify-center">
+                    { session?.user?.image ? (
+                        <img
+                            src={ session.user.image }
+                            alt={ session.user.name ?? "User" }
+                            className="h-full w-full object-cover"
+                            referrerPolicy="no-referrer"
+                        />
+                    ) : (
+                        <FaUser size={ 44 } className="text-neutral-500" />
+                    ) }
                 </div>
-                <div className="text-lg font-medium">Guest</div>
-                <div className="text-sm font-light">version: { CURRENT_VERSION }</div>
+
+                <div className="text-center space-y-1">
+                    <div className="text-lg font-medium">
+                        { session?.user?.name ?? "Guest" }
+                    </div>
+
+                    <div className="text-sm text-neutral-500">
+                        { session?.user?.email ?? "Not signed in" }
+                    </div>
+                </div>
             </div>
 
-            {/* Danger zone */ }
-            <div className="w-full max-w-sm border border-red-200 rounded-lg p-4">
-                <p className="text-sm text-neutral-600 mb-3">
-                    This will remove all stored expenses from this device.
-                </p>
+            {/* Actions */ }
+            <div className="w-full max-w-sm space-y-4 mb-12">
+                { session && (
+                    <button
+                        onClick={ () => signOut() }
+                        className="w-full flex items-center justify-center gap-2 rounded-xl border border-neutral-300 py-3 text-sm text-neutral-700 hover:bg-neutral-100 cursor-pointer"
+                    >
+                        <LogOut size={ 16 } />
+                        Sign out
+                    </button>
+                ) }
 
-                <button
-                    onClick={ handleDeleteAll }
-                    className="w-full py-2 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600"
-                >
-                    Delete All Data
-                </button>
+                <div className="text-center text-xs text-neutral-400">
+                    Pocket • v{ CURRENT_VERSION }
+                </div>
             </div>
         </div>
     );
