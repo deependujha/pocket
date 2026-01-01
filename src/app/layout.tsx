@@ -16,9 +16,9 @@ const geistMono = Geist_Mono( {
 } );
 
 export const metadata: Metadata = {
-  title: "Expense Tracker",
+  title: "Pocket",
   description:
-    "A private, no-nonsense expense tracker for daily use. Designed for quick entries, offline access, and keeping personal spending under control.",
+    "A private, offline-first expense tracker for daily use. No accounts, no ads — your data stays in your pocket.",
   icons: {
     icon: [
       { url: '/favicon/favicon-16x16.png', sizes: '16x16', type: 'image/png' },

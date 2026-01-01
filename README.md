@@ -1,4 +1,4 @@
-# Expense Tracker
+# Pocket
 
 A simple, private, local-first expense tracker built for daily use.
 
