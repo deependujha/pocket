@@ -35,15 +35,15 @@ export const DEFAULT_CATEGORIES: Category[] = [
     { id: "groceries", name: "Groceries", icon: FcShop, color: "#60a5fa" },
     { id: "travel", name: "Travel", icon: FcShipped, color: "#34d399" },
     { id: "accessories", name: "Accessories", icon: FcInTransit, color: "#a78bfa" },
-    { id: "harmful", name: "Smoking / Drinking", icon: FcHighPriority, color: "#f87171" },
+    { id: "subscription", name: "Subscriptions", icon: FcPaid, color: "#f87171" },
     { id: "clothes", name: "Clothes", icon: FcPaid, color: "#fbbf24" },
     { id: "kitchen", name: "Kitchen", icon: FcHome, color: "#22d3ee" },
     { id: "washroom", name: "Washroom", icon: FcSupport, color: "#fb7185" },
     { id: "personal", name: "Personal", icon: FcBusinessman, color: "#c084fc" },
     { id: "sent", name: "Sent Money", icon: FcMoneyTransfer, color: "#94a3b8" },
-    { id: "custom", name: "Custom", icon: FcPlus, color: "#f472b6" },
     { id: "other", name: "Other", icon: FcPackage, color: "#a3a3a3" },
 ];
+
 
 
 export const CategoryMap = DEFAULT_CATEGORIES.reduce( ( map, category ) => {
