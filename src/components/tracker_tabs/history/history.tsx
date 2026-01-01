@@ -33,10 +33,11 @@ export const HistoryTab = () => {
     const [ loading, setLoading ] = useState( true );
 
     useEffect( () => {
-        getAllExpenses()
+        fetch( "/api/expenses/all" )
+            .then( res => res.json() )
             .then( ( expenses ) => {
                 const sorted = expenses.sort(
-                    ( a, b ) => b.createdAt - a.createdAt
+                    ( a: { createdAt: number; }, b: { createdAt: number; } ) => b.createdAt - a.createdAt
                 );
                 setGroupedExpenses( groupByDay( sorted ) );
             } )

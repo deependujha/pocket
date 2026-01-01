@@ -9,11 +9,7 @@ import {
     DEFAULT_CATEGORIES,
     Expense,
 } from "@/constants/types";
-import {
-    deleteExpenseFromDB,
-    getTodayExpenses,
-    saveExpense,
-} from "@/db/index_db_helper";
+import { saveExpense, updateExpense, deleteExpense } from "@/utils/api_helper_code"
 
 /* ---------- Utils ---------- */
 
@@ -38,21 +34,10 @@ export const TodayTab = () => {
     /* ---------- Load today's expenses ---------- */
 
     useEffect( () => {
-        getTodayExpenses()
+        fetch( "/api/expenses/today" )
+            .then( res => res.json() )
             .then( ( data ) => {
-                const normalized = data
-                    .map( ( e ) => {
-                        const legacyCategoryId = ( e as any ).category?.id;
-                        const categoryId =
-                            ( e as any ).categoryId ||
-                            legacyCategoryId ||
-                            DEFAULT_CATEGORIES[ 0 ].id;
-
-                        return { ...e, categoryId } as Expense;
-                    } )
-                    .sort( ( a, b ) => b.createdAt - a.createdAt );
-
-                setExpenses( normalized );
+                setExpenses( data );
             } )
             .finally( () => setLoading( false ) );
     }, [] );
@@ -61,6 +46,7 @@ export const TodayTab = () => {
 
     const saveOrUpdateExpense = async () => {
         if ( !title || !amount ) return;
+        let original_data = [ ...expenses ];
 
         if ( editingId ) {
             const existing = expenses.find( ( e ) => e.id === editingId );
@@ -78,8 +64,14 @@ export const TodayTab = () => {
                 prev.map( ( e ) => ( e.id === editingId ? updated : e ) )
             );
 
-            await saveExpense( updated );
-            toast.success( "Expense updated" );
+            updateExpense( updated.id, updated ).then( () => {
+                original_data = original_data.map( ( e ) => ( e.id === editingId ? updated : e ) );
+                setExpenses( original_data );
+                toast.success( "Expense updated" );
+            } ).catch( ( error ) => {
+                console.error( "Error updating expense:", error );
+                toast.error( "Failed to update expense" );
+            } );
         } else {
             const expense: Expense = {
                 id: crypto.randomUUID(),
@@ -91,8 +83,15 @@ export const TodayTab = () => {
             };
 
             setExpenses( ( prev ) => [ expense, ...prev ] );
-            await saveExpense( expense );
-            toast.success( "Expense added" );
+            saveExpense( expense ).then( ( savedExpense ) => {
+                console.log( "Saved expense:", savedExpense );
+                original_data = [ savedExpense, ...original_data ];
+                setExpenses( original_data );
+                toast.success( "Expense added" );
+            } ).catch( ( error ) => {
+                console.error( "Error saving expense:", error );
+                toast.error( "Failed to add expense" );
+            } );
         }
 
         resetForm();
@@ -114,10 +113,14 @@ export const TodayTab = () => {
 
     /* ---------- Delete ---------- */
 
-    const deleteExpense = async ( id: string ) => {
+    const deleteExpenseHandler = async ( id: string ) => {
         setExpenses( ( prev ) => prev.filter( ( e ) => e.id !== id ) );
-        await deleteExpenseFromDB( id );
-        toast.error( "Expense deleted" );
+        deleteExpense( id ).then( () => {
+            toast.success( "Expense deleted" );
+        } ).catch( ( error ) => {
+            console.error( "Error deleting expense:", error );
+            toast.error( "Failed to delete expense" );
+        } );
     };
 
     /* ---------- Reset ---------- */
@@ -201,7 +204,7 @@ export const TodayTab = () => {
                                             ) }
                                         </span>
                                         <button
-                                            onClick={ () => deleteExpense( e.id ) }
+                                            onClick={ () => deleteExpenseHandler( e.id ) }
                                             className="text-xs text-neutral-400 hover:text-red-500 cursor-pointer"
                                         >
                                             Delete

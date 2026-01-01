@@ -70,15 +70,9 @@ export const StatsTab = () => {
 
         const { start, end } = getMonthRange( selectedMonth );
 
-        getAllExpenses()
-            .then( ( expenses ) => {
-                setMonthlyExpenses(
-                    expenses.filter(
-                        ( e ) => e.createdAt >= start && e.createdAt <= end
-                    )
-                );
-            } )
-            .finally( () => setLoading( false ) );
+        fetch( `/api/expenses/month?year=${selectedMonth.year}&month=${selectedMonth.month}` )
+            .then( res => res.json() )
+            .then( setMonthlyExpenses ).finally( () => setLoading( false ) );
     }, [ selectedMonth ] );
 
     /* ---------- States ---------- */
