@@ -101,7 +101,7 @@ export const StatsTab = () => {
                     onSelect={ setSelectedMonth }
                 />
                 <div className="flex h-[80vh] items-center justify-center text-neutral-400">
-                    No expenses this month.
+                    No expenses recorded for { formatMonth( selectedMonth ) }.
                 </div>
             </div>
         );
