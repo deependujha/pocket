@@ -18,7 +18,7 @@ export const TrackerPage = () => {
             </main>
 
             {/* Bottom Bar */ }
-            <nav className="h-14 border-t border-neutral-200 flex justify-around items-center">
+            <nav className="h-14 border-t border-neutral-200 flex justify-around items-center mb-2">
                 { tabs.map( ( tab ) => {
                     const { icon: Icon, label } = TrackerTabMap[ tab ];
                     const isActive = activeTab === tab;
