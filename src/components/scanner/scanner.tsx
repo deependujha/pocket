@@ -6,59 +6,56 @@ import { Html5Qrcode } from 'html5-qrcode';
 export const Scanner = () => {
     const [showPaymentForm, setShowPaymentForm] = useState(false);
     const [isScanning, setIsScanning] = useState(false);
+
     const [upiData, setUpiData] = useState({
-        pa: '', // Receiver VPA (UPI ID)
-        am: '', // Amount
-        tn: '', // Transaction Note (Reason)
-        category: '' // Extra field for your use
+        pa: '',
+        am: '',
+        tn: '',
+        category: ''
     });
 
     const scannerRef = useRef<Html5Qrcode | null>(null);
     const readerDivRef = useRef<HTMLDivElement>(null);
 
+    /** ---------- Scanner lifecycle helpers ---------- */
+    const stopScanner = async () => {
+        if (!scannerRef.current) return;
+
+        try {
+            await scannerRef.current.stop();
+        } catch {
+            // ignore
+        }
+
+        scannerRef.current = null;
+        if (readerDivRef.current) {
+            readerDivRef.current.innerHTML = '';
+        }
+    };
+
+    /** ---------- Effect: start / stop scanner ---------- */
     useEffect(() => {
-        // Only start scanner if explicitly requested
         if (!isScanning) {
-            // Cleanup when stopping
-            if (scannerRef.current) {
-                scannerRef.current.stop()
-                    .then(() => {
-                        scannerRef.current = null;
-                        if (readerDivRef.current) readerDivRef.current.innerHTML = "";
-                    })
-                    .catch(() => {
-                        // Scanner wasn't running, just clear the reference
-                        scannerRef.current = null;
-                    });
-            }
+            stopScanner();
             return;
         }
 
+        // Guard: prevent double start
+        if (scannerRef.current) return;
+
         const startScanner = async () => {
             try {
-                // Ensure any old instance is cleaned up
-                if (scannerRef.current) {
-                    try {
-                        await scannerRef.current.stop();
-                    } catch {
-                        // Ignore stop errors
-                    }
-                    scannerRef.current = null;
-                }
+                const scanner = new Html5Qrcode('reader');
+                scannerRef.current = scanner;
 
-                const html5QrCode = new Html5Qrcode("reader");
-                scannerRef.current = html5QrCode;
-
-                await html5QrCode.start(
-                    { facingMode: "environment" },
+                await scanner.start(
+                    { facingMode: 'environment' },
                     { fps: 10, qrbox: { width: 250, height: 250 } },
-                    (decodedText) => {
-                        handleScan(decodedText);
-                    },
-                    () => { /* Silent failure for scan attempts */ }
+                    handleScan,
+                    () => {}
                 );
             } catch (err) {
-                console.error("Failed to start scanner:", err);
+                console.error('Failed to start scanner:', err);
                 setIsScanning(false);
             }
         };
@@ -66,65 +63,63 @@ export const Scanner = () => {
         startScanner();
     }, [isScanning]);
 
-    const handleScan = (data: string) => {
-        let receiverId = "";
+    /** ---------- Scan handler ---------- */
+    const handleScan = async (data: string) => {
+        let receiverId = '';
 
-        // Standard UPI QR check
-        if (data.startsWith("upi://pay")) {
-            const urlParts = new URL(data.replace('upi://pay', 'https://upi.com'));
-            receiverId = urlParts.searchParams.get("pa") || "";
-        } else if (data.includes("@")) {
-            // Simple text QR containing only the UPI ID
+        if (data.startsWith('upi://pay')) {
+            const url = new URL(data.replace('upi://pay', 'https://upi.com'));
+            receiverId = url.searchParams.get('pa') || '';
+        } else if (data.includes('@')) {
             receiverId = data;
         }
 
-        if (receiverId) {
-            setUpiData(prev => ({ ...prev, pa: receiverId }));
-            setShowPaymentForm(true);
-        } else {
-            alert("Invalid UPI QR Code");
-        }
-    };
-
-    const makePayment = () => {
-        const { pa, am, tn, category } = upiData;
-
-        if (!am) {
-            alert("Please enter an amount");
+        if (!receiverId) {
+            alert('Invalid UPI QR Code');
             return;
         }
 
-        // Combine reason and category for the UPI note parameter 'tn'
-        // const fullNote = `${tn} ${category ? '(' + category + ')' : ''}`.trim();
-        
-        // Build UPI link
-        // pa = Address, am = Amount, tn = Note, cu = Currency
-        // const upiUrl = `upi://pay?pa=${pa}&pn=Recipient&am=${am}&tn=${encodeURIComponent(fullNote)}&cu=INR`;
-        // const upiUrl = `upi://pay?pa=${pa}&pn=Recipient&am=${am}`;
-        const upiUrl = `phonepe://pay?pa=${pa}&pn=Recipient&am=${am}`;
+        // 🔴 Stop scanner immediately after success
+        await stopScanner();
+        setIsScanning(false);
 
+        setUpiData(prev => ({ ...prev, pa: receiverId }));
+        setShowPaymentForm(true);
+    };
+
+    /** ---------- Payment ---------- */
+    const makePayment = () => {
+        const { pa, am } = upiData;
+
+        if (!am) {
+            alert('Please enter an amount');
+            return;
+        }
+
+        const upiUrl = `phonepe://pay?pa=${pa}&pn=Recipient&am=${am}`;
         window.location.href = upiUrl;
     };
 
+    /** ---------- Form helpers ---------- */
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.target;
         setUpiData(prev => ({ ...prev, [id]: value }));
     };
 
-    const handleCancel = () => {
+    const handleCancelPayment = () => {
         setUpiData({ pa: '', am: '', tn: '', category: '' });
         setShowPaymentForm(false);
+        setIsScanning(true); // 🔁 restart scanner cleanly
     };
 
-    const startScanning = () => {
-        setIsScanning(true);
-    };
+    const startScanning = () => setIsScanning(true);
 
-    const stopScanning = () => {
+    const cancelScanning = () => {
         setIsScanning(false);
         setShowPaymentForm(false);
     };
 
+    /** ---------- UI ---------- */
     return (
         <div className="min-h-screen bg-slate-50 p-6">
             <div className="max-w-2xl mx-auto">
@@ -138,7 +133,7 @@ export const Scanner = () => {
                         {!isScanning ? (
                             <button
                                 onClick={startScanning}
-                                className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all"
+                                className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl"
                             >
                                 Start Scanning
                             </button>
@@ -148,12 +143,13 @@ export const Scanner = () => {
                                     <div
                                         ref={readerDivRef}
                                         id="reader"
-                                        className="w-full overflow-hidden rounded-xl bg-slate-100 min-h-75"
+                                        className="w-full min-h-72 rounded-xl bg-slate-100"
                                     />
                                 </div>
+
                                 <button
-                                    onClick={stopScanning}
-                                    className="w-full py-4 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 shadow-lg shadow-red-200 transition-all"
+                                    onClick={cancelScanning}
+                                    className="w-full py-4 bg-red-600 text-white font-bold rounded-xl"
                                 >
                                     Cancel Scanning
                                 </button>
@@ -161,62 +157,34 @@ export const Scanner = () => {
                         )}
                     </div>
                 ) : (
-                    <div className="bg-white rounded-2xl shadow-xl p-6 animate-in slide-in-from-bottom-4 duration-500">
-                        <h2 className="text-xl font-bold text-slate-900 mb-6">Payment Details</h2>
-                        
-                        <div className="bg-blue-50 rounded-xl p-4 mb-6 border border-blue-100">
-                            <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider">Receiver ID</p>
-                            <p className="text-lg font-medium text-slate-900 truncate">{upiData.pa}</p>
+                    <div className="bg-white rounded-2xl shadow-xl p-6">
+                        <h2 className="text-xl font-bold mb-6">Payment Details</h2>
+
+                        <div className="bg-blue-50 rounded-xl p-4 mb-6">
+                            <p className="text-xs font-semibold text-blue-600">Receiver</p>
+                            <p className="text-lg font-medium truncate">{upiData.pa}</p>
                         </div>
 
-                        <div className="space-y-5">
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1">Amount (₹)</label>
-                                <input
-                                    type="number"
-                                    id="am"
-                                    value={upiData.am}
-                                    onChange={handleInputChange}
-                                    placeholder="0.00"
-                                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-black"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1">Reason</label>
-                                    <input
-                                        type="text"
-                                        id="tn"
-                                        value={upiData.tn}
-                                        onChange={handleInputChange}
-                                        placeholder="Dinner"
-                                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-black"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1">Category</label>
-                                    <input
-                                        type="text"
-                                        id="category"
-                                        value={upiData.category}
-                                        onChange={handleInputChange}
-                                        placeholder="Food"
-                                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-black"
-                                    />
-                                </div>
-                            </div>
+                        <div className="space-y-4">
+                            <input
+                                type="number"
+                                id="am"
+                                value={upiData.am}
+                                onChange={handleInputChange}
+                                placeholder="Amount"
+                                className="w-full px-4 py-3 border rounded-xl text-black"
+                            />
 
                             <div className="flex gap-3 pt-4">
                                 <button
-                                    onClick={handleCancel}
-                                    className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-all"
+                                    onClick={handleCancelPayment}
+                                    className="flex-1 py-4 bg-slate-100 font-bold rounded-xl"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={makePayment}
-                                    className="flex-1 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all"
+                                    className="flex-1 py-4 bg-blue-600 text-white font-bold rounded-xl"
                                 >
                                     Pay Now
                                 </button>
