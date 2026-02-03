@@ -100,7 +100,8 @@ export const Scanner = () => {
         // Build UPI link
         // pa = Address, am = Amount, tn = Note, cu = Currency
         // const upiUrl = `upi://pay?pa=${pa}&pn=Recipient&am=${am}&tn=${encodeURIComponent(fullNote)}&cu=INR`;
-        const upiUrl = `upi://pay?pa=${pa}&pn=Recipient&am=${am}`;
+        // const upiUrl = `upi://pay?pa=${pa}&pn=Recipient&am=${am}`;
+        const upiUrl = `phonepe://pay?pa=${pa}&pn=Recipient&am=${am}`;
 
         window.location.href = upiUrl;
     };
