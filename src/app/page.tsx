@@ -23,11 +23,10 @@ export default function Home() {
   }
 
   // Not logged in
-  if ( !session && false ) {
+  if ( !session) {
     return <LoginPage />;
   }
 
   // Logged in
-  // return <TrackerPage />;
-  return <Scanner/>;
+  return <TrackerPage />;
 }
