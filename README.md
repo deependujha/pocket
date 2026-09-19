@@ -1,170 +1,85 @@
 # Pocket
 
-A simple, private, local-first expense tracker built for daily use.
+Your money, in one place. A private, single-person money-management app: emergency fund, goals, SIPs, FDs, loans, and one number that says how secure you are.
 
-This app is designed to be **used**, not marketed.
+Nothing is linked to a bank. You type the numbers in; they live in your own Postgres database.
 
 ---
 
 ## Why this exists
 
-Most expense trackers:
+Version 1 was an expense tracker with a UPI QR scanner. Scanning was flaky in real lighting, and payment redirects kept getting blocked. Logging every chai was also the wrong thing to optimise.
 
-* require accounts
-* collect data
-* show ads
-* push subscriptions
-* overcomplicate basic tracking
-
-This app does none of that.
-
-It’s meant for **one person (or two)** who just want to log expenses quickly and look at them later.
+What actually matters is the structure: is there an emergency fund, is the card paid, are the SIPs running, is the Goa trip funded before the flight? Pocket v2 tracks that structure and nothing else.
 
 ---
 
-## Core principles
+## The model
 
-* **No authentication**
-* **No backend**
-* **No ads**
-* **No analytics**
-* **No data collection**
-* **No cloud sync (by design)**
+**Accounts** are where money physically sits: savings account, cash, each FD, RD, PPF, EPF, Nifty 50 SIP, gold ETF, stocks, credit card (as an amount owed). Every balance change is logged as a movement, so each account has a history.
 
-Your data lives **only in your browser**, stored locally using **IndexedDB**.
+**Goals** are what the money is for: emergency fund, long-term wealth, a phone at Diwali, a gift for Mom, a trip. A goal has a target, an optional date or trigger ("when I get my bonus"), and a monthly plan. An account can fund at most one goal; the goal's progress is the sum of its linked balances. One FD per goal keeps it clean.
 
-If you delete the browser data, the expenses are gone.
-That’s the tradeoff for privacy and simplicity.
+**Loans** are money you lent or borrowed, with repayments. Lent money is an asset you can't spend. Borrowed money and card dues are subtracted from net worth.
 
----
+**The Plan** is the point of the app. Surplus = take-home − expenses (expenses include everything you don't want to track, like parents' insurance). You assign a monthly amount to each goal and each debt, and pick where that amount goes once the line is done ("overflow"). Pocket simulates month by month and derives the phases:
 
-## How it works
+> Phase 1: ₹35K job-loss cover, ₹20K health, ₹8.6K fun, ₹42.4K SIPs → ends when job-loss cover is funded (~14 mo)
+> Phase 2: the ₹35K rolls into health → ends when health is funded
+> Phase 3: everything flows to long-term SIPs
 
-* Built as a **web app**
-* Uses **IndexedDB** for persistence
-* Works fully offline after first load
-* Optimized for mobile usage
+Nothing in that is typed in. Change an amount and the phases, completion dates and steady state recompute as you type. "Suggest a split" drafts a 40% long-term / 60% safety split weighted by what's left to fund; edit from there.
 
-The app has four sections:
+**Buckets.** Every rupee of assets lands in exactly one of five jobs: Emergency, Long-term, Goals, Free cash, Lent out. The overview shows this as one bar.
 
-### Today
+**Health score (0–100)** answers "how secure am I?":
 
-* Add expenses
-* Edit today’s entries
-* Quick, frictionless logging
+| Component | Max | Full marks when |
+|---|---|---|
+| Emergency runway | 30 | Job-loss-cover balances cover N months of expenses (default 6) |
+| Cash buffer | 15 | One month of expenses free in liquid accounts after card dues |
+| Debt load | 20 | Nothing owed (drops to 0 at 50% of assets) |
+| Investing | 20 | 20% of income goes to SIPs, or 40% of assets are invested |
+| Goals on track | 15 | Every dated goal is at or ahead of its expected pace |
 
-### History
-
-* Read-only view of past expenses
-* Grouped by day
-* No editing or deletion (intentional)
-
-### Stats
-
-* Monthly overview
-* Category-wise breakdown
-* Visual distribution of spending
-
-### More
-
-* Guest profile
-* Option to delete all local data
+Each component shows what it measured and one thing that would raise it.
 
 ---
 
-## How you’re expected to use it
+## Screens
 
-This is important.
+- **Overview**: net worth with 30-day delta, health ring, this month's split, allocation bar, net-worth line, active goals, and "coming up" (FD maturities, loan due dates, goal deadlines within ~60 days).
+- **Plan**: the monthly split editor with live phases (above).
+- **Goals**: progress meters with an expected-pace marker; detail page has a path-to-target projection and the accounts funding it.
+- **Money**: accounts and loans under one tab. Accounts are grouped by type with sparklines; detail page has balance history, FD maturity value, SIP cost vs value, and a balance-update sheet (deposit / withdraw / interest / market / set).
+  Loans: lent vs borrowed, repayments, auto-close when fully repaid; a borrowed loan's EMI is a plan line.
+- **More**: your monthly numbers, theme, a short guide, JSON export, sign out.
 
-### First time
+The view lives in the URL (`/?tab=goals&id=…`) so reloads and the back button work, but switching never asks the server for anything.
 
-1. Open the website in your mobile browser (Chrome / Safari)
-2. Add it to your **Home Screen**
-
-   * iOS: Share → Add to Home Screen
-   * Android: Browser menu → Add to Home Screen
-
-Now it behaves like an app.
-
-### Daily usage
-
-* Open the app
-* Add an expense **immediately after a transaction**
-* Don’t overthink categories
-* Don’t optimize prematurely
-
-The goal is **habit**, not perfection.
+First sign-in runs a one-screen setup: income, expenses, targets for job-loss cover / health emergency / fun fund, an optional existing debt, and starter accounts. It drafts a first split and lands you on the Plan.
 
 ---
 
-## Data & privacy
+## Stack
 
-* All data is stored locally in **IndexedDB**
-* Nothing is sent to any server
-* No tracking scripts
-* No cookies
-* No user identification
+Next.js 16 (App Router, server actions) · React 19 · Prisma 7 on Postgres (Neon) · NextAuth with Google · Tailwind 4 · Recharts.
 
-This app cannot see your data.
-That’s the point.
+```bash
+npm install
+cp .env.local.example .env.local   # DATABASE_URL, GOOGLE_CLIENT_ID/SECRET, NEXTAUTH_URL/SECRET
+npx prisma migrate deploy
+npm run dev
+```
 
----
-
-## Limitations (intentional)
-
-* No login
-* No sync across devices
-* No backups
-* No sharing
-
-If, after using this daily for a month or two, syncing feels necessary — then it’s earned.
-
-Until then, local-only keeps things fast, private, and distraction-free.
+`npm run build` runs migrations then builds, so deploys apply schema changes automatically.
 
 ---
 
-## Tech stack (for the curious)
+## Notes
 
-* Next.js
-* React
-* Tailwind CSS
-* IndexedDB
-* Recharts (for stats)
-
-No backend. No database server. No auth provider.
-
----
-
-## Future ideas (only if needed)
-
-* Optional login
-* Cloud sync (MongoDB / Supabase / etc.)
-* Export / import data
-* Multi-device support
-
-None of these are planned until daily usage proves they’re worth the complexity.
-
----
-
-## Philosophy
-
-> Software should adapt to habits, not demand them.
-
-This app stays out of your way.
-If it helps you become more aware of spending, it’s doing its job.
-
----
-
-If you want, next time we can:
-
-* add export/import
-* add optional backup
-* or deliberately **not add anything** and keep it boring
-
-Boring software that works is a success.
-
----
-
-*Credits*:
-
-Special thanks to [ChatGPT](https://chat.openai.com/) and [GitHub Copilot](https://github.com/features/copilot) for their assistance.
+- Amounts are integer rupees. Formatting is Indian (₹1,50,000; ₹1.5L; ₹1.2Cr).
+- FD maturity assumes quarterly compounding.
+- Dark by default, light available, violet accent. Switch under More → Appearance.
+- Built to be added to the home screen: standalone display, bottom tab bar everywhere, service worker for install.
+- Speed: it is a single page. The server renders it once with all your data (one cached read per user, invalidated on write); after that every tab, detail screen and back/forward is a client-side component swap with zero server requests. Writes go through server actions, then the in-memory store re-pulls in the background (a thin violet bar at the top shows it). Reopening the app after a minute refreshes quietly. `next dev` compiles on demand and is much slower than the production build.

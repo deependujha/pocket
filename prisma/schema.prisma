@@ -1,5 +1,5 @@
-// Prisma schema for Pocket
-// Personal-first, simple, extensible
+// Prisma schema for Pocket — personal money management
+// Everything is entered by hand. Nothing is linked to a bank.
 
 generator client {
   provider = "prisma-client"
@@ -12,7 +12,7 @@ datasource db {
 
 /**
  * =========================
- * User
+ * User & settings
  * =========================
  */
 
@@ -20,37 +20,243 @@ model User {
   id         String  @id @default(cuid())
   email      String  @unique
   name       String?
-  image      String? // Google profile picture
-  provider   String // "google"
-  providerId String // Google sub
+  image      String?
+  provider   String
+  providerId String
 
-  createdAt DateTime @default(now())
+  createdAt   DateTime @default(now())
   lastLoginAt DateTime @updatedAt
 
-  expenses Expense[]
+  settings  Settings?
+  accounts  Account[]
+  goals     Goal[]
+  loans     Loan[]
+  movements Movement[]
 
   @@index([email])
 }
 
+model Settings {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  monthlyIncome   Int @default(0) // ₹ per month, take-home
+  monthlyExpense  Int @default(0) // ₹ per month, fixed + everyday spending you don't track (rent, food, parents' insurance…)
+  planNote        String?         // free text: the reasoning behind the current split
+  emergencyMonths Int @default(6) // how many months of expenses the emergency fund should cover
+  onboarded       Boolean @default(false)
+
+  updatedAt DateTime @updatedAt
+}
+
 /**
  * =========================
- * Expense
+ * Accounts — where money physically sits
  * =========================
  */
 
-model Expense {
-  id String @id @default(cuid())
+enum AccountType {
+  SAVINGS      // savings bank account
+  CASH         // cash in hand
+  FD           // fixed deposit
+  RD           // recurring deposit
+  PPF          // public provident fund
+  EPF          // employee provident fund
+  EQUITY_SIP   // index / equity SIP (e.g. Nifty 50 ETF)
+  GOLD_SIP     // gold ETF / SGB
+  STOCKS       // direct stocks
+  MUTUAL_FUND  // other mutual funds
+  CREDIT_CARD  // liability: amount currently owed
+  OTHER
+}
 
+enum Liquidity {
+  LIQUID // can spend today
+  SEMI   // a few days, maybe a small penalty (FD break, sell ETF)
+  LOCKED // years (PPF, EPF)
+}
+
+model Account {
+  id     String @id @default(cuid())
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  categoryId  String // matches DEFAULT_CATEGORIES ids
-  title       String
-  description String?
-  amount      Int // store in smallest unit (₹)
-  createdAt   DateTime @default(now())
+  name        String
+  type        AccountType
+  institution String?
+  liquidity   Liquidity   @default(LIQUID)
+
+  balance  Int  @default(0) // current value in ₹ (for CREDIT_CARD: amount owed)
+  invested Int? // cost basis for market-linked accounts (SIPs, stocks)
+
+  // Deposits (FD / RD / PPF)
+  interestRate Float?    // % per annum
+  startDate    DateTime?
+  maturityDate DateTime?
+
+  // Recurring contribution (SIP / RD / PPF)
+  sipAmount Int? // ₹ per month
+  sipDay    Int? // day of month
+
+  // Earmarking: an account funds at most one goal
+  goalId String?
+  goal   Goal?   @relation(fields: [goalId], references: [id], onDelete: SetNull)
+
+  note     String?
+  archived Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  movements Movement[]
 
   @@index([userId])
-  @@index([createdAt])
-  @@index([categoryId])
+  @@index([goalId])
+}
+
+enum MovementKind {
+  DEPOSIT  // money you put in
+  WITHDRAW // money you took out
+  INTEREST // interest / dividend credited
+  MARKET   // market gain or loss (no cash moved)
+  ADJUST   // manual correction to match the real balance
+}
+
+model Movement {
+  id        String @id @default(cuid())
+  userId    String
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  kind         MovementKind
+  amount       Int      // signed ₹ delta applied to balance
+  balanceAfter Int      // account balance after this movement
+  date         DateTime @default(now())
+  note         String?
+
+  createdAt DateTime @default(now())
+
+  @@index([accountId, date])
+  @@index([userId, date])
+}
+
+/**
+ * =========================
+ * Goals — what the money is for
+ * =========================
+ */
+
+enum GoalKind {
+  EMERGENCY
+  WEALTH    // long-term investing, no end date
+  FUN       // travel, gadgets, anything — a guilt-free pot
+  PURCHASE  // phone, laptop, appliance, bike
+  GIFT      // for mom, dad, sisters, partner
+  TRAVEL
+  EDUCATION
+  HEALTH
+  CUSTOM
+}
+
+enum GoalStatus {
+  ACTIVE
+  ACHIEVED
+  PAUSED
+  ARCHIVED
+}
+
+model Goal {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name    String
+  kind    GoalKind   @default(CUSTOM)
+  status  GoalStatus @default(ACTIVE)
+  emoji   String?
+  forWhom String?    // "Mom", "Dad", "Sister", "Me", ...
+
+  target      Int       // ₹
+  targetDate  DateTime? // "by Diwali 2026"
+  trigger     String?   // "when I get my bonus", "after she finishes college"
+  monthlyPlan Int?      // ₹ you intend to add every month (the Plan screen edits this)
+  priority    Int       @default(2) // 1 high, 2 normal, 3 low — also the order money flows
+
+  // When this goal is fully funded, its monthly amount is redirected here.
+  // Null = the long-term wealth goal (or unallocated if there is none).
+  overflowGoalId String?
+  overflowGoal   Goal?   @relation("GoalOverflow", fields: [overflowGoalId], references: [id], onDelete: SetNull)
+  overflowFrom   Goal[]  @relation("GoalOverflow")
+  loanOverflowFrom Loan[]
+
+  note       String?
+  achievedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts Account[]
+
+  @@index([userId, status])
+}
+
+/**
+ * =========================
+ * Loans — money lent to others, or borrowed
+ * =========================
+ */
+
+enum LoanDirection {
+  LENT     // you gave money; they owe you
+  BORROWED // you owe someone (bank, friend, family)
+}
+
+enum LoanStatus {
+  ACTIVE
+  CLOSED
+}
+
+model Loan {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  direction    LoanDirection
+  status       LoanStatus    @default(ACTIVE)
+  counterparty String        // "Rahul", "HDFC Bank"
+  purpose      String?
+
+  principal    Int       // ₹ original amount
+  interestRate Float?    // % p.a.
+  startDate    DateTime  @default(now())
+  dueDate      DateTime?
+  emi          Int?      // ₹ per month, if any
+
+  // When a borrowed loan is cleared, its EMI is redirected to this goal.
+  overflowGoalId String?
+  overflowGoal   Goal?   @relation(fields: [overflowGoalId], references: [id], onDelete: SetNull)
+
+  note     String?
+  closedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payments LoanPayment[]
+
+  @@index([userId, status])
+}
+
+model LoanPayment {
+  id     String @id @default(cuid())
+  loanId String
+  loan   Loan   @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  amount Int      // ₹ repaid (reduces outstanding)
+  date   DateTime @default(now())
+  note   String?
+
+  @@index([loanId, date])
 }

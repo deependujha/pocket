@@ -3,11 +3,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Full-height, light-only baseline */
+/* Full-height baseline; theme class set by next-themes on <html> */
 html,
 body {
   height: 100%;
-  background: #ffffff;
+  background: var(--page);
 }
 
 /* Single source of truth */
@@ -15,17 +15,23 @@ body {
 /* Tailwind theme bindings */
 @theme inline {
   --color-background: var(--background);
+  --color-page: var(--page);
+  --color-viz-1: var(--viz-1);
+  --color-viz-2: var(--viz-2);
+  --color-viz-3: var(--viz-3);
+  --color-viz-4: var(--viz-4);
+  --color-viz-5: var(--viz-5);
+  --color-status-good: var(--status-good);
+  --color-status-good-text: var(--status-good-text);
+  --color-status-warning: var(--status-warning);
+  --color-status-warning-text: var(--status-warning-text);
+  --color-status-serious: var(--status-serious);
+  --color-status-serious-text: var(--status-serious-text);
+  --color-status-critical: var(--status-critical);
+  --color-status-critical-text: var(--status-critical-text);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -54,6 +60,7 @@ body {
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+  --color-viz-8: var(--viz-8);
 }
 
 /* No media queries. No negotiation. */
@@ -64,73 +71,106 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* =========================================================
+ * Tokens. Light is warm-neutral; dark is violet-tinted.
+ * Chart series validated for colour-vision safety in both modes.
+ * ======================================================= */
+
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  color-scheme: light;
+  --radius: 0.875rem;
+  --page: #f6f6f3;
+
+  --background: #ffffff;
+  --foreground: #121118;
+  --card: #ffffff;
+  --card-foreground: #121118;
+  --popover: #ffffff;
+  --popover-foreground: #121118;
+  --primary: #6d28d9;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f0f4;
+  --secondary-foreground: #121118;
+  --muted: #f1f0f4;
+  --muted-foreground: #6f6c7c;
+  --accent: #f3f0ff;
+  --accent-foreground: #4c1d95;
+  --destructive: #d03b3b;
+  --border: rgba(18, 17, 24, 0.08);
+  --input: rgba(18, 17, 24, 0.14);
+  --ring: #8b5cf6;
+
+  /* Data-viz: violet leads, then the validated order */
+  --viz-1: #4a3aa7;
+  --viz-2: #eb6834;
+  --viz-3: #1baf7a;
+  --viz-4: #eda100;
+  --viz-5: #e87ba4;
+  --viz-8: #e34948;
+  --viz-grid: #e6e5ec;
+  --viz-axis: #c3c2cb;
+  --viz-muted: #898791;
+  --viz-track: #ecebf1;
+
+  /* Status (icon + label always accompany) */
+  --status-good: #0ca30c;
+  --status-good-text: #006300;
+  --status-warning: #fab219;
+  --status-warning-text: #7a5200;
+  --status-serious: #ec835a;
+  --status-serious-text: #8a3a1a;
+  --status-critical: #d03b3b;
+  --status-critical-text: #a32020;
+
+  --chart-1: var(--viz-1);
+  --chart-2: var(--viz-2);
+  --chart-3: var(--viz-3);
+  --chart-4: var(--viz-4);
+  --chart-5: var(--viz-5);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  color-scheme: dark;
+  --page: #0b0a10;
+
+  --background: #0b0a10;
+  --foreground: #f3f1f9;
+  --card: #16151d;
+  --card-foreground: #f1eff7;
+  --popover: #1c1b24;
+  --popover-foreground: #f1eff7;
+  --primary: #a78bfa;
+  --primary-foreground: #1a0b3d;
+  --secondary: #23222d;
+  --secondary-foreground: #f1eff7;
+  --muted: #232230;
+  --muted-foreground: #aaa7ba;
+  --accent: #2a2340;
+  --accent-foreground: #ddd6fe;
+  --destructive: #e66767;
+  --border: rgba(243, 241, 249, 0.11);
+  --input: rgba(243, 241, 249, 0.2);
+  --ring: #a78bfa;
+
+  --viz-1: #9085e9;
+  --viz-2: #d95926;
+  --viz-3: #199e70;
+  --viz-4: #c98500;
+  --viz-5: #d55181;
+  --viz-8: #e66767;
+  --viz-grid: #2b2a36;
+  --viz-axis: #444352;
+  --viz-muted: #9a97a8;
+  --viz-track: #2b2a36;
+
+  --status-good: #22b622;
+  --status-good-text: #4ade80;
+  --status-warning: #fab219;
+  --status-warning-text: #fcd34d;
+  --status-serious: #ec835a;
+  --status-serious-text: #fdba74;
+  --status-critical: #e05252;
+  --status-critical-text: #f87171;
 }
 
 @layer base {
@@ -138,6 +178,31 @@ body {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-page text-foreground;
   }
+  ::selection { background: color-mix(in oklab, var(--primary) 30%, transparent); }
 }
+
+/* ---------- app chrome ---------- */
+
+.tabular { font-variant-numeric: tabular-nums; }
+
+.card {
+  @apply rounded-2xl border border-border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.03)];
+}
+.dark .card { box-shadow: 0 1px 0 rgba(255,255,255,0.03) inset; }
+
+/* recharts: recessive chrome */
+.recharts-cartesian-grid-horizontal line { stroke: var(--viz-grid); }
+.recharts-cartesian-axis-line { stroke: var(--viz-axis); }
+.recharts-cartesian-axis-tick-value { fill: var(--viz-muted); font-size: 11px; }
+.recharts-tooltip-cursor { stroke: var(--viz-axis); }
+
+/* hide number input spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sync { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
