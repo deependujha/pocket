@@ -11,9 +11,18 @@ const globalForPrisma = globalThis as unknown as {
     prisma: PrismaClient | undefined;
 };
 
-export const prisma =
-    globalForPrisma.prisma ??
-    new PrismaClient( {
+/**
+ * In dev the client is kept on globalThis across hot reloads. After `prisma generate`
+ * adds a model, that cached instance is stale (e.g. prisma.planPhase is undefined),
+ * so we check that every model we use exists before reusing it.
+ */
+const MODELS = [ "user", "settings", "planPhase", "account", "movement", "goal", "loan", "loanPayment" ] as const;
+const isCurrent = ( c: PrismaClient | undefined ): c is PrismaClient =>
+    !!c && MODELS.every( m => typeof ( c as unknown as Record<string, unknown> )[ m ] === "object" );
+
+export const prisma = isCurrent( globalForPrisma.prisma )
+    ? globalForPrisma.prisma
+    : new PrismaClient( {
         adapter: new PrismaPg( { connectionString } ),
         log: [ "error" ],
     } );
