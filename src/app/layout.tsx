@@ -19,7 +19,19 @@ export const metadata: Metadata = {
         apple: "/favicon/apple-touch-icon.png",
     },
     manifest: "/favicon/site.webmanifest",
-    appleWebApp: { capable: true, title: "Pocket", statusBarStyle: "black-translucent" },
+    appleWebApp: {
+        capable: true,
+        title: "Pocket",
+        // Not "black-translucent": on an installed app iOS then sizes the web view
+        // screen-height minus the status bar, so the bottom edge can't be painted.
+        // With "default" the view sits below the status bar and reaches the bottom.
+        statusBarStyle: "default",
+    },
+    other: {
+        // Next emits only `mobile-web-app-capable`; iOS honours the status bar style
+        // only when the Apple-prefixed tag is present too.
+        "apple-mobile-web-app-capable": "yes",
+    },
     formatDetection: { telephone: false },
 };
 
@@ -28,6 +40,7 @@ export const viewport: Viewport = {
         { media: "(prefers-color-scheme: light)", color: "#f6f6f3" },
         { media: "(prefers-color-scheme: dark)", color: "#0e0d13" },
     ],
+    maximumScale: 1,
     userScalable: false,
     viewportFit: "cover",
     width: "device-width",

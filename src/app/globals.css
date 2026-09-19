@@ -63,11 +63,12 @@ body {
   --color-viz-8: var(--viz-8);
 }
 
-/* No media queries. No negotiation. */
-body {
-
-  /* iOS safe area support */
-  padding-top: env(safe-area-inset-top);
+/*
+ * Safe areas: iOS reports 0 for an edge it has already inset the web view clear of,
+ * and the real inset for one the page extends under. Only the bottom bar pads for
+ * it; the body must not, or the bar ends up padded twice.
+ */
+.safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }
 

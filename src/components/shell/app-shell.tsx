@@ -28,7 +28,7 @@ export function AppShell( { initial, user }: { initial: Everything; user: Sessio
     return (
         <DataProvider initial={ initial } user={ user }>
             <SyncBar />
-            <main className="mx-auto w-full max-w-2xl px-4 pb-28 pt-3">
+            <main className="mx-auto w-full max-w-2xl px-4 pt-3" style={ { paddingBottom: "calc(5rem + env(safe-area-inset-bottom))" } }>
                 <Suspense fallback={ null }>
                     <Screen />
                 </Suspense>
@@ -67,7 +67,7 @@ function SyncBar() {
 function BottomNav() {
     const v = useView();
     return (
-        <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/90 backdrop-blur-md" style={ { paddingBottom: "env(safe-area-inset-bottom)" } }>
+        <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/90 backdrop-blur-md">
             <ul className="mx-auto flex h-16 max-w-2xl items-stretch justify-around">
                 { TABS.map( ( { tab, label, Icon } ) => {
                     const on = v.tab === tab;
