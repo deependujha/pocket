@@ -11,6 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Meter } from "@/components/ui/meter";
 import { Status } from "@/components/ui/status";
 import { Sparkline } from "@/components/charts/sparkline";
+import { AllocationBar } from "@/components/charts/allocation-bar";
+import { TrendArea } from "@/components/charts/area-chart";
+import { summarize, netWorthHistory } from "@/lib/finance";
 import { AddAccountButton } from "@/components/accounts/account-sheets";
 import { AddLoanButton } from "@/components/loans/loan-sheets";
 import { cn } from "@/lib/utils";
@@ -33,9 +36,11 @@ export function MoneyView( { sub }: { sub: MoneySub } ) {
 }
 
 function Accounts() {
-    const { data: { accounts, goals, movements } } = useData();
+    const { data: { accounts, goals, movements, loans, settings } } = useData();
     const goalOpts = goals.filter( g => g.status === "ACTIVE" ).map( g => ( { id: g.id, name: g.name, emoji: g.emoji } ) );
     const live = accounts.filter( a => !a.archived );
+    const sum = summarize( live, loans, settings );
+    const history = netWorthHistory( live, movements, loans );
     const archived = accounts.filter( a => a.archived );
     const total = live.filter( a => !isDebt( a ) ).reduce( ( s, a ) => s + a.balance, 0 );
     const owed = live.filter( isDebt ).reduce( ( s, a ) => s + a.balance, 0 );
@@ -49,7 +54,15 @@ function Accounts() {
             <PageHeader title="Accounts" subtitle={ <>{ inr( total ) } across { live.length } account{ live.length === 1 ? "" : "s" }{ owed > 0 && <> · { inrCompact( owed ) } owed</> }</> }
                 action={ <AddAccountButton goals={ goalOpts } /> } />
             { live.length === 0 && (
-                <Empty icon={ <Landmark size={ 36 } /> } title="No accounts yet" body="Add your savings account, each FD or RD, your SIPs and your credit card. One deposit per goal keeps it clean." action={ <AddAccountButton goals={ goalOpts } /> } />
+                <Empty icon={ <Landmark size={ 36 } /> } title="No accounts yet" body="Savings, each FD or RD, SIPs, credit card. One deposit per goal." action={ <AddAccountButton goals={ goalOpts } /> } />
+            ) }
+            { live.length > 0 && (
+                <Section title="Where it sits">
+                    <div className="card p-4">
+                        <AllocationBar buckets={ sum.buckets } total={ sum.assets } />
+                        { history.length > 1 && <div className="mt-4 border-t border-border pt-3"><div className="mb-1 text-xs text-muted-foreground">Net worth</div><TrendArea data={ history } id="nw" height={ 140 } /></div> }
+                    </div>
+                </Section>
             ) }
             { groups.map( g => (
                 <Section key={ g.key } title={ g.label }>
@@ -141,7 +154,7 @@ function Loans() {
         <>
             <PageHeader title="Loans" subtitle="Who owes whom." action={ <AddLoanButton goals={ goalOpts } /> } />
             { loans.length === 0 ? (
-                <Empty icon={ <HandCoins size={ 36 } /> } title="No loans tracked" body="Money you lent a friend, an EMI you're paying, cash from Dad — track it here so net worth stays honest." action={ <AddLoanButton goals={ goalOpts } /> } />
+                <Empty icon={ <HandCoins size={ 36 } /> } title="No loans" body="Money you lent, an EMI you pay, cash from family. Keep net worth honest." action={ <AddLoanButton goals={ goalOpts } /> } />
             ) : (
                 <div className="mb-6 grid grid-cols-2 gap-3">
                     <Stat label="Owed to you" value={ <span className="text-status-good-text">{ inr( owedToMe ) }</span> } sub={ `${lent.length} active` } />

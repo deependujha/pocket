@@ -16,7 +16,7 @@ export type LinkableAccount = { id: string; name: string; type: keyof typeof ACC
 
 export type GoalOptionLite = { id: string; name: string; emoji: string | null };
 
-export function GoalForm( { goal, accounts, goals = [], onDone }: { goal?: Goal; accounts: LinkableAccount[]; goals?: GoalOptionLite[]; onDone?: ( id?: string ) => void } ) {
+export function GoalForm( { goal, accounts, onDone }: { goal?: Goal; accounts: LinkableAccount[]; goals?: GoalOptionLite[]; onDone?: ( id?: string ) => void } ) {
     const [ kind, setKind ] = useState<GoalKind>( goal?.kind ?? "PURCHASE" );
     const [ emoji, setEmoji ] = useState( goal?.emoji ?? GOAL_KINDS[ goal?.kind ?? "PURCHASE" ].emoji );
     const fn = goal ? updateGoal.bind( null, goal.id ) : createGoal;
@@ -63,15 +63,6 @@ export function GoalForm( { goal, accounts, goals = [], onDone }: { goal?: Goal;
                 <Field label="Target amount">
                     <MoneyInput name="target" defaultValue={ goal?.target ?? null } required min={ 1 } />
                 </Field>
-                <Field label="Plan to add monthly" hint="Or leave blank to use linked SIPs">
-                    <MoneyInput name="monthlyPlan" defaultValue={ goal?.monthlyPlan ?? null } min={ 0 } />
-                </Field>
-            </Row>
-
-            <Row>
-                <Field label="By when" hint="Optional">
-                    <input type="date" name="targetDate" defaultValue={ toInputDate( goal?.targetDate ) } className={ inputCls } />
-                </Field>
                 <Field label="Priority">
                     <Select name="priority" defaultValue={ String( goal?.priority ?? 2 ) }>
                         <option value="1">High</option><option value="2">Normal</option><option value="3">Low</option>
@@ -79,23 +70,19 @@ export function GoalForm( { goal, accounts, goals = [], onDone }: { goal?: Goal;
                 </Field>
             </Row>
 
+            <Field label="By when" hint="Optional">
+                <input type="date" name="targetDate" defaultValue={ toInputDate( goal?.targetDate ) } className={ inputCls } />
+            </Field>
+
             <Field label="Or when…" hint="A trigger instead of a date">
                 <input name="trigger" defaultValue={ goal?.trigger ?? "" } placeholder="…I get my bonus / she finishes college" className={ inputCls } />
             </Field>
 
-            { kind !== "WEALTH" && (
-                <Field label="When funded, send its monthly amount to" hint="Default: long-term wealth.">
-                    <Select name="overflowGoalId" defaultValue={ goal?.overflowGoalId ?? "" }>
-                        <option value="">Default (long-term wealth)</option>
-                        { goals.filter( g => g.id !== goal?.id ).map( g => <option key={ g.id } value={ g.id }>{ g.emoji ? `${g.emoji} ` : "" }{ g.name }</option> ) }
-                    </Select>
-                </Field>
-            ) }
 
             { linkable.length > 0 && (
                 <fieldset>
                     <legend className="mb-1 text-xs font-medium text-foreground/75">Funded by</legend>
-                    <p className="mb-2 text-[11px] text-muted-foreground/75">Balances of ticked accounts count toward this goal. An account can fund only one goal.</p>
+                    <p className="mb-2 text-[11px] text-muted-foreground/75">Ticked balances count toward this goal. One account, one goal.</p>
                     <ul className="max-h-48 divide-y divide-border overflow-y-auto rounded-xl border border-input">
                         { linkable.map( a => {
                             const mine = a.goalId === goal?.id;
@@ -114,7 +101,7 @@ export function GoalForm( { goal, accounts, goals = [], onDone }: { goal?: Goal;
                 </fieldset>
             ) }
 
-            <Field label="Why this matters" hint="Optional. You'll see it when motivation dips.">
+            <Field label="Note" hint="Optional">
                 <Textarea name="note" defaultValue={ goal?.note ?? "" } rows={ 2 } />
             </Field>
 

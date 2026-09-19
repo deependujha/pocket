@@ -10,7 +10,7 @@ const fmtTick = ( t: number ) => new Date( t ).toLocaleDateString( "en-IN", { da
 /** Single series over time. Title names the series, so no legend. */
 export function TrendArea( { data, color = "var(--viz-1)", height = 180, id = "trend" }: { data: Pt[]; color?: string; height?: number; id?: string } ) {
     if ( data.length < 2 ) {
-        return <div className="flex items-center justify-center text-xs text-muted-foreground/75" style={ { height } }>Not enough history yet — update a balance to start the line.</div>;
+        return <div className="flex items-center justify-center text-xs text-muted-foreground/75" style={ { height } }>Not enough history yet: update a balance to start the line.</div>;
     }
     const min = Math.min( ...data.map( d => d.value ) );
     const max = Math.max( ...data.map( d => d.value ) );

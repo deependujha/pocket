@@ -18,7 +18,6 @@ const goalSchema = z.object( {
     trigger: optStr,
     monthlyPlan: optInt,
     priority: optInt.transform( v => v ?? 2 ),
-    overflowGoalId: optStr,
     note: optStr,
     accountIds: z.array( z.string() ).optional().default( [] ),
 } );
@@ -35,8 +34,8 @@ export async function createGoal( _: ActionResult | null, fd: FormData ): Promis
         const user = await requireUser();
         const p = parseForm( goalSchema, fd );
         if ( "error" in p ) return { ok: false, error: p.error };
-        const { accountIds, overflowGoalId, ...data } = p.data;
-        const g = await prisma.goal.create( { data: { ...data, userId: user.id, overflowGoalId: overflowGoalId && ( await prisma.goal.count( { where: { id: overflowGoalId, userId: user.id } } ) ) ? overflowGoalId : null } } );
+        const { accountIds, ...data } = p.data;
+        const g = await prisma.goal.create( { data: { ...data, userId: user.id } } );
         await link( user.id, g.id, accountIds );
         invalidateUser( user.id ); revalidatePath( "/", "layout" );
         return { ok: true, id: g.id };
@@ -48,9 +47,8 @@ export async function updateGoal( id: string, _: ActionResult | null, fd: FormDa
         const user = await requireUser();
         const p = parseForm( goalSchema, fd );
         if ( "error" in p ) return { ok: false, error: p.error };
-        const { accountIds, overflowGoalId, ...data } = p.data;
-        const ok = overflowGoalId && overflowGoalId !== id && ( await prisma.goal.count( { where: { id: overflowGoalId, userId: user.id } } ) ) > 0;
-        const r = await prisma.goal.updateMany( { where: { id, userId: user.id }, data: { ...data, overflowGoalId: ok ? overflowGoalId : null } } );
+        const { accountIds, ...data } = p.data;
+        const r = await prisma.goal.updateMany( { where: { id, userId: user.id }, data } );
         if ( r.count === 0 ) return { ok: false, error: "Goal not found" };
         await link( user.id, id, accountIds );
         invalidateUser( user.id ); revalidatePath( "/", "layout" );

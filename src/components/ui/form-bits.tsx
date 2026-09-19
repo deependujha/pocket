@@ -37,11 +37,12 @@ export function FormError( { error }: { error?: string | null } ) {
 export const inputCls = "h-10 w-full rounded-xl border border-input bg-card px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25";
 
 /** ₹ prefixed number input */
-export function MoneyInput( { name, defaultValue, placeholder = "0", required, autoFocus, min }: { name: string; defaultValue?: number | null; placeholder?: string; required?: boolean; autoFocus?: boolean; min?: number } ) {
+export function MoneyInput( { name, defaultValue, placeholder = "0", required, autoFocus, min, onChange }: { name: string; defaultValue?: number | null; placeholder?: string; required?: boolean; autoFocus?: boolean; min?: number; onChange?: ( v: number ) => void } ) {
     return (
         <div className="relative">
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground/75">₹</span>
             <input type="number" inputMode="numeric" name={ name } defaultValue={ defaultValue ?? "" } placeholder={ placeholder } required={ required } autoFocus={ autoFocus } min={ min } step={ 1 }
+                onChange={ onChange ? e => onChange( Math.max( 0, Math.round( Number( e.target.value ) || 0 ) ) ) : undefined }
                 className={ cn( inputCls, "pl-7 tabular" ) } />
         </div>
     );

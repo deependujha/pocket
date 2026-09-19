@@ -10,31 +10,30 @@ import { Section } from "@/components/ui/page";
 import { Status, type Tone } from "@/components/ui/status";
 import { Meter } from "@/components/ui/meter";
 import { HealthRing } from "@/components/charts/health-ring";
-import { AllocationBar } from "@/components/charts/allocation-bar";
-import { TrendArea } from "@/components/charts/area-chart";
+import { Sparkline } from "@/components/charts/sparkline";
 import { HealthBreakdown } from "@/components/overview/health-breakdown";
 import { PlanCard } from "@/components/overview/plan-card";
-import { buildPlanLines, surplusOf } from "@/lib/plan-lines";
-import { simulatePlan } from "@/lib/plan";
+import { buildDebts, buildGoalLines, planFor } from "@/lib/plan-lines";
 
 const greeting = ( h: number ) => ( h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening" );
 const bandTone: Record<string, Tone> = { secure: "good", stable: "good", building: "warning", fragile: "critical" };
 
 export function OverviewView() {
-    const { data: { accounts: allAccounts, goals, loans, movements, settings }, user } = useData();
+    const { data: { accounts: allAccounts, goals, loans, movements, settings, phases }, user } = useData();
     const accounts = allAccounts.filter( a => !a.archived );
     const s = summarize( accounts, loans, settings );
     const progress = goals.map( g => goalProgress( g, accounts ) );
     const health = healthScore( s, settings, progress );
     const history = netWorthHistory( accounts, movements, loans );
-    const planLines = buildPlanLines( goals, accounts, loans );
-    const plan = simulatePlan( planLines, surplusOf( settings ) );
+    const plan = planFor( goals, accounts, loans, phases, settings );
+    const planGoals = buildGoalLines( goals, accounts );
+    const planDebts = buildDebts( loans );
     const now = new Date();
     const monthAgo = now.getTime() - 30 * 86400000;
     const base = history.find( p => p.date >= monthAgo ) ?? history[ 0 ];
     const delta = base ? s.netWorth - base.value : 0;
 
-    const activeGoals = progress.filter( p => p.goal.status === "ACTIVE" ).slice( 0, 4 );
+    const activeGoals = progress.filter( p => p.goal.status === "ACTIVE" && p.goal.kind !== "WEALTH" ).slice( 0, 3 );
     const soon = ( d: Date | null | undefined, days: number ) => !!d && daysBetween( now, d ) <= days && daysBetween( now, d ) >= -30;
 
     const upcoming: { key: string; when: Date; title: string; sub: string; to: View }[] = [];
@@ -60,29 +59,26 @@ export function OverviewView() {
         <div>
             <div className="pt-2 pb-5">
                 <p className="text-sm text-muted-foreground">{ greeting( now.getHours() ) }{ user.name ? `, ${user.name.split( " " )[ 0 ]}` : "" }</p>
-                <div className="mt-1 flex items-baseline gap-3">
+                <div className="mt-1 flex items-end justify-between gap-3">
                     <h1 className="text-[40px] font-semibold leading-none tracking-tight">{ inr( s.netWorth ) }</h1>
+                    { history.length > 1 && <Sparkline data={ history.map( h => h.value ) } width={ 96 } height={ 32 } color={ delta >= 0 ? "var(--status-good)" : "var(--status-critical)" } /> }
                 </div>
-                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-                    <span className="text-muted-foreground">Net worth</span>
-                    { history.length > 1 && (
-                        <span className={ delta >= 0 ? "text-status-good-text" : "text-status-critical-text" }>{ inrDelta( delta ) } in 30 days</span>
-                    ) }
-                    <span className="text-muted-foreground/75">·</span>
-                    <span className="text-muted-foreground">Own { inrCompact( s.assets ) }</span>
-                    { s.liabilities > 0 && <span className="text-muted-foreground">· Owe { inrCompact( s.liabilities ) }</span> }
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                    <span>Net worth</span>
+                    { history.length > 1 && <span className={ delta >= 0 ? "text-status-good-text" : "text-status-critical-text" }>{ inrDelta( delta ) } in 30 days</span> }
+                    { s.liabilities > 0 && <span>· owe { inrCompact( s.liabilities ) }</span> }
                 </div>
             </div>
 
             <Section>
-                <div className="card p-5">
-                    <div className="flex items-center gap-5">
-                        <HealthRing score={ health.score } tone={ bandTone[ health.band ] } label={ health.bandLabel } />
+                <div className="card p-4">
+                    <div className="flex items-center gap-4">
+                        <HealthRing score={ health.score } tone={ bandTone[ health.band ] } label={ health.bandLabel } size={ 104 } stroke={ 9 } />
                         <div className="min-w-0 flex-1">
-                            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">How secure am I?</div>
+                            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Security</div>
                             <div className="mt-1 text-2xl font-semibold tracking-tight">{ health.bandLabel }</div>
                             <div className="mt-1.5"><Status tone={ bandTone[ health.band ] }>{ s.runwayMonths != null ? `${s.runwayMonths.toFixed( 1 )} months of runway` : "Set expenses to see runway" }</Status></div>
-                            <p className="mt-2 text-sm text-muted-foreground">{ health.components.filter( c => c.points < c.max ).sort( ( a, b ) => ( b.max - b.points ) - ( a.max - a.points ) )[ 0 ]?.tip ?? "Everything is in order. Keep going." }</p>
+                            <p className="mt-1.5 text-sm text-muted-foreground">{ health.components.filter( c => c.points < c.max ).sort( ( a, b ) => ( b.max - b.points ) - ( a.max - a.points ) )[ 0 ]?.tip ?? "All good." }</p>
                         </div>
                     </div>
                     <HealthBreakdown components={ health.components } />
@@ -90,30 +86,12 @@ export function OverviewView() {
             </Section>
 
             <Section>
-                <PlanCard result={ plan } lines={ planLines } />
-            </Section>
-
-            <Section title="Where the money is" hint="Every rupee has one job.">
-                <div className="card p-5">
-                    <AllocationBar buckets={ s.buckets } total={ s.assets } />
-                    { s.liabilities > 0 && (
-                        <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-sm">
-                            <span className="text-foreground/75">Owed (card { inrCompact( s.creditCardDue ) } · loans { inrCompact( s.borrowed ) })</span>
-                            <span className="tabular font-medium text-status-critical-text">−{ inrCompact( s.liabilities ) }</span>
-                        </div>
-                    ) }
-                </div>
-            </Section>
-
-            <Section title="Net worth over time">
-                <div className="card p-4 pl-3">
-                    <TrendArea data={ history } id="nw" />
-                </div>
+                <PlanCard result={ plan } goals={ planGoals } debts={ planDebts } />
             </Section>
 
             <Section title="Goals" action={ <NavLink to={ { tab: "goals" } } className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">All <ArrowRight size={ 14 } /></NavLink> }>
                 { activeGoals.length === 0 ? (
-                    <NavLink to={ { tab: "goals" } } className="card flex items-center gap-3 p-4 text-sm text-foreground/75 hover:bg-muted/60"><Plus size={ 18 } className="text-muted-foreground/75" /> Add your first goal — a gift, a trip, a phone.</NavLink>
+                    <NavLink to={ { tab: "goals" } } className="card flex items-center gap-3 p-4 text-sm text-foreground/75 hover:bg-muted/60"><Plus size={ 18 } className="text-muted-foreground/75" /> Add a goal: a trip, a phone, a gift.</NavLink>
                 ) : (
                     <ul className="card divide-y divide-border">
                         { activeGoals.map( p => (
@@ -134,7 +112,7 @@ export function OverviewView() {
             { upcoming.length > 0 && (
                 <Section title="Coming up">
                     <ul className="card divide-y divide-border">
-                        { upcoming.map( u => (
+                        { upcoming.slice( 0, 3 ).map( u => (
                             <li key={ u.key }>
                                 <NavLink to={ u.to } className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-muted/60">
                                     <div className="w-14 shrink-0 text-xs text-muted-foreground">{ relativeDays( u.when ) }</div>

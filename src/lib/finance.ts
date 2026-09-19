@@ -32,7 +32,7 @@ export function fdMaturityValue( principal: number, ratePct: number, start: Date
     return Math.round( principal * Math.pow( 1 + ratePct / 100 / n, n * years ) );
 }
 
-/** Where an FD "should" be today if interest accrued linearly — for the accrued-interest hint. */
+/** Where an FD "should" be today if interest accrued linearly: for the accrued-interest hint. */
 export function fdAccruedValue( principal: number, ratePct: number, start: Date, maturity: Date, today = new Date() ) {
     if ( today <= start ) return principal;
     if ( today >= maturity ) return fdMaturityValue( principal, ratePct, start, maturity );
@@ -53,7 +53,7 @@ export const loanOutstanding = ( l: LoanWithPayments, asOf?: Date ) =>
     Math.max( 0, l.principal - loanPaid( l, asOf ) );
 
 /* =========================================================
- * Summary — the numbers on the overview
+ * Summary: the numbers on the overview
  * ======================================================= */
 
 export type Summary = {
@@ -68,7 +68,7 @@ export type Summary = {
     invested: number;        // market-linked + retirement value
     monthlySip: number;      // sum of recurring contributions
     emergencyFund: number;   // job-loss + health, everything untouchable
-    jobLossFund: number;     // only the job-loss cover — what runway is measured on
+    jobLossFund: number;     // only the job-loss cover: what runway is measured on
     runwayMonths: number | null;
 };
 
@@ -118,7 +118,7 @@ export function summarize( accounts: AccountWithGoal[], loans: LoanWithPayments[
 }
 
 /* =========================================================
- * Health score — "how secure am I?"  (0–100)
+ * Health score: "how secure am I?"  (0–100)
  * ======================================================= */
 
 export type HealthComponent = {
@@ -143,7 +143,7 @@ export function healthScore( s: Summary, settings: Settings | null, goals: GoalP
     const targetMonths = settings?.emergencyMonths ?? 6;
     const c: HealthComponent[] = [];
 
-    // 1. Emergency runway — 30
+    // 1. Emergency runway: 30
     {
         const max = 30;
         if ( expense <= 0 ) {
@@ -159,7 +159,7 @@ export function healthScore( s: Summary, settings: Settings | null, goals: GoalP
         }
     }
 
-    // 2. Liquidity buffer — 15 (one month of free cash after card dues)
+    // 2. Liquidity buffer: 15 (one month of free cash after card dues)
     {
         const max = 15;
         if ( expense <= 0 ) {
@@ -175,7 +175,7 @@ export function healthScore( s: Summary, settings: Settings | null, goals: GoalP
         }
     }
 
-    // 3. Debt load — 20
+    // 3. Debt load: 20
     {
         const max = 20;
         const ratio = s.assets > 0 ? s.liabilities / s.assets : ( s.liabilities > 0 ? 1 : 0 );
@@ -187,7 +187,7 @@ export function healthScore( s: Summary, settings: Settings | null, goals: GoalP
         } );
     }
 
-    // 4. Investing — 20 (SIP rate vs income, or invested share of assets)
+    // 4. Investing: 20 (SIP rate vs income, or invested share of assets)
     {
         const max = 20;
         const sipRate = income > 0 ? s.monthlySip / income : 0;
@@ -201,12 +201,12 @@ export function healthScore( s: Summary, settings: Settings | null, goals: GoalP
         } );
     }
 
-    // 5. Goals on track — 15
+    // 5. Goals on track: 15
     {
         const max = 15;
         const active = goals.filter( g => g.goal.status === "ACTIVE" && g.goal.kind !== "WEALTH" && g.goal.kind !== "EMERGENCY" && g.goal.kind !== "HEALTH" );
         if ( active.length === 0 ) {
-            c.push( { key: "goals", label: "Goals on track", points: Math.round( max * 0.5 ), max, detail: "No goals yet", tip: "Add a goal — a gift, a trip, a phone — and link an FD to it." } );
+            c.push( { key: "goals", label: "Goals on track", points: Math.round( max * 0.5 ), max, detail: "No goals yet", tip: "Add a goal: a gift, a trip, a phone: and link an FD to it." } );
         } else {
             const on = active.filter( g => g.onTrack ).length;
             const points = Math.round( ( on / active.length ) * max );
@@ -292,7 +292,7 @@ export function goalProjectionSeries( gp: GoalProgress, movements: Movement[], n
 }
 
 /* =========================================================
- * History — net worth over time from movements
+ * History: net worth over time from movements
  * ======================================================= */
 
 /** Sum of balanceAfter of the latest movement per account, sampled over time. */

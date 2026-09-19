@@ -33,14 +33,15 @@ const goalSel = { select: { id: true, name: true, kind: true, status: true } } a
 
 const fetchEverything = unstable_cache(
     async ( userId: string ) => {
-        const [ accounts, goals, loans, movements, settings ] = await Promise.all( [
+        const [ accounts, goals, loans, movements, settings, phases ] = await Promise.all( [
             prisma.account.findMany( { where: { userId }, include: { goal: goalSel }, orderBy: [ { archived: "asc" }, { createdAt: "asc" } ] } ),
             prisma.goal.findMany( { where: { userId }, orderBy: [ { status: "asc" }, { priority: "asc" }, { createdAt: "asc" } ] } ),
             prisma.loan.findMany( { where: { userId }, include: { payments: { orderBy: { date: "desc" } } }, orderBy: [ { status: "asc" }, { createdAt: "desc" } ] } ),
             prisma.movement.findMany( { where: { userId }, orderBy: { date: "asc" } } ),
             prisma.settings.findUnique( { where: { userId } } ),
+            prisma.planPhase.findMany( { where: { userId }, orderBy: { order: "asc" } } ),
         ] );
-        return { accounts, goals, loans, movements, settings };
+        return { accounts, goals, loans, movements, settings, phases };
     },
     [ "everything" ],
     { tags: [] as string[] },
@@ -52,6 +53,7 @@ export type Everything = {
     loans: LoanWithPayments[];
     movements: Awaited<ReturnType<typeof prisma.movement.findMany>>;
     settings: Awaited<ReturnType<typeof prisma.settings.findUnique>>;
+    phases: Awaited<ReturnType<typeof prisma.planPhase.findMany>>;
 };
 
 /** Everything the user owns, in one cached read. */

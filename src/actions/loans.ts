@@ -17,21 +17,16 @@ const loanSchema = z.object( {
     startDate: optDate,
     dueDate: optDate,
     emi: optInt,
-    overflowGoalId: optStr,
     note: optStr,
 } );
-
-async function validOverflow( userId: string, id: string | null ) {
-    return id && ( await prisma.goal.count( { where: { id, userId } } ) ) > 0 ? id : null;
-}
 
 export async function createLoan( _: ActionResult | null, fd: FormData ): Promise<ActionResult> {
     try {
         const user = await requireUser();
         const p = parseForm( loanSchema, fd );
         if ( "error" in p ) return { ok: false, error: p.error };
-        const { startDate, overflowGoalId, ...data } = p.data;
-        const l = await prisma.loan.create( { data: { ...data, overflowGoalId: await validOverflow( user.id, overflowGoalId ), startDate: startDate ?? new Date(), userId: user.id } } );
+        const { startDate, ...data } = p.data;
+        const l = await prisma.loan.create( { data: { ...data, startDate: startDate ?? new Date(), userId: user.id } } );
         invalidateUser( user.id ); revalidatePath( "/", "layout" );
         return { ok: true, id: l.id };
     } catch ( e ) { return fail( e ); }
@@ -42,8 +37,8 @@ export async function updateLoan( id: string, _: ActionResult | null, fd: FormDa
         const user = await requireUser();
         const p = parseForm( loanSchema, fd );
         if ( "error" in p ) return { ok: false, error: p.error };
-        const { startDate, overflowGoalId, ...data } = p.data;
-        const r = await prisma.loan.updateMany( { where: { id, userId: user.id }, data: { ...data, overflowGoalId: await validOverflow( user.id, overflowGoalId ), ...( startDate ? { startDate } : {} ) } } );
+        const { startDate, ...data } = p.data;
+        const r = await prisma.loan.updateMany( { where: { id, userId: user.id }, data: { ...data, ...( startDate ? { startDate } : {} ) } } );
         if ( r.count === 0 ) return { ok: false, error: "Loan not found" };
         invalidateUser( user.id ); revalidatePath( "/", "layout" );
         return { ok: true, id };

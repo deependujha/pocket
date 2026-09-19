@@ -28,6 +28,7 @@ model User {
   lastLoginAt DateTime @updatedAt
 
   settings  Settings?
+  phases    PlanPhase[]
   accounts  Account[]
   goals     Goal[]
   loans     Loan[]
@@ -43,7 +44,6 @@ model Settings {
 
   monthlyIncome   Int @default(0) // ₹ per month, take-home
   monthlyExpense  Int @default(0) // ₹ per month, fixed + everyday spending you don't track (rent, food, parents' insurance…)
-  planNote        String?         // free text: the reasoning behind the current split
   emergencyMonths Int @default(6) // how many months of expenses the emergency fund should cover
   onboarded       Boolean @default(false)
 
@@ -181,15 +181,8 @@ model Goal {
   target      Int       // ₹
   targetDate  DateTime? // "by Diwali 2026"
   trigger     String?   // "when I get my bonus", "after she finishes college"
-  monthlyPlan Int?      // ₹ you intend to add every month (the Plan screen edits this)
-  priority    Int       @default(2) // 1 high, 2 normal, 3 low — also the order money flows
-
-  // When this goal is fully funded, its monthly amount is redirected here.
-  // Null = the long-term wealth goal (or unallocated if there is none).
-  overflowGoalId String?
-  overflowGoal   Goal?   @relation("GoalOverflow", fields: [overflowGoalId], references: [id], onDelete: SetNull)
-  overflowFrom   Goal[]  @relation("GoalOverflow")
-  loanOverflowFrom Loan[]
+  monthlyPlan Int?      // ₹ per month, derived from the current plan phase when the plan is saved
+  priority    Int       @default(2) // 1 high, 2 normal, 3 low
 
   note       String?
   achievedAt DateTime?
@@ -204,7 +197,27 @@ model Goal {
 
 /**
  * =========================
- * Loans — money lent to others, or borrowed
+ * Plan phases: how the surplus is split, decided by the user
+ * =========================
+ */
+
+model PlanPhase {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  order  Int  // 1 = now; 2 = after the first goal fills, and so on
+  shares Json // { goalId: percent } of what's left after debt payments
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, order])
+}
+
+/**
+ * =========================
+ * Loans: money lent to others, or borrowed
  * =========================
  */
 
@@ -232,11 +245,7 @@ model Loan {
   interestRate Float?    // % p.a.
   startDate    DateTime  @default(now())
   dueDate      DateTime?
-  emi          Int?      // ₹ per month, if any
-
-  // When a borrowed loan is cleared, its EMI is redirected to this goal.
-  overflowGoalId String?
-  overflowGoal   Goal?   @relation(fields: [overflowGoalId], references: [id], onDelete: SetNull)
+  emi          Int?      // ₹ per month; for borrowed loans this is paid before anything is split
 
   note     String?
   closedAt DateTime?

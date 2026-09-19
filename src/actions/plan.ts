@@ -1,42 +1,50 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { invalidateUser } from "@/lib/data";
+import { simulatePlan, type Shares } from "@/lib/plan";
+import { buildDebts, buildGoalLines, surplusOf } from "@/lib/plan-lines";
 import { type ActionResult, fail } from "./_shared";
 
-/**
- * Saves the whole plan in one go. Fields:
- *   m:<goalId>        monthly amount for a goal
- *   o:<goalId>        overflow goal id ("" = default)
- *   m:loan:<loanId>   EMI for a borrowed loan
- *   o:loan:<loanId>   overflow goal id
- *   planNote          free text
- */
+const payload = z.object( {
+    phases: z.array( z.record( z.string(), z.number().min( 0 ).max( 100 ) ) ).max( 20 ),
+    debts: z.record( z.string(), z.number().int().min( 0 ).max( 100000000 ) ),
+} );
+
+/** Saves every decided phase and each debt's monthly payment in one go. */
 export async function savePlan( _: ActionResult | null, fd: FormData ): Promise<ActionResult> {
     try {
         const user = await requireUser();
-        const goalIds = new Set( ( await prisma.goal.findMany( { where: { userId: user.id }, select: { id: true } } ) ).map( g => g.id ) );
-        const ops = [];
-        const num = ( v: FormDataEntryValue | null ) => { const n = Math.round( Number( String( v ?? "" ).trim() ) ); return Number.isFinite( n ) && n >= 0 ? Math.min( n, 100000000 ) : 0; };
-        const ref = ( v: FormDataEntryValue | null ) => { const s = String( v ?? "" ).trim(); return s && goalIds.has( s ) ? s : null; };
+        const parsed = payload.safeParse( JSON.parse( String( fd.get( "plan" ) ?? "{}" ) ) );
+        if ( !parsed.success ) return { ok: false, error: "Could not read the plan" };
+        const { phases, debts } = parsed.data;
 
-        for ( const [ k ] of fd.entries() ) {
-            if ( !k.startsWith( "m:" ) ) continue;
-            const id = k.slice( 2 );
-            const monthly = num( fd.get( k ) );
-            const overflow = ref( fd.get( `o:${id}` ) );
-            if ( id.startsWith( "loan:" ) ) {
-                const loanId = id.slice( 5 );
-                ops.push( prisma.loan.updateMany( { where: { id: loanId, userId: user.id }, data: { emi: monthly || null, overflowGoalId: overflow } } ) );
-            } else if ( goalIds.has( id ) ) {
-                ops.push( prisma.goal.update( { where: { id }, data: { monthlyPlan: monthly, overflowGoalId: overflow === id ? null : overflow } } ) );
+        const goals = await prisma.goal.findMany( { where: { userId: user.id } } );
+        const goalIds = new Set( goals.map( g => g.id ) );
+        const clean: Shares[] = phases.map( p => Object.fromEntries( Object.entries( p ).filter( ( [ id ] ) => goalIds.has( id ) ).map( ( [ id, v ] ) => [ id, Math.round( v ) ] ) ) );
+
+        await prisma.$transaction( async tx => {
+            await tx.planPhase.deleteMany( { where: { userId: user.id } } );
+            for ( let i = 0; i < clean.length; i++ ) await tx.planPhase.create( { data: { userId: user.id, order: i + 1, shares: clean[ i ] } } );
+            for ( const [ id, monthly ] of Object.entries( debts ) ) {
+                await tx.loan.updateMany( { where: { id, userId: user.id, direction: "BORROWED" }, data: { emi: monthly || null } } );
             }
-        }
-        const note = String( fd.get( "planNote" ) ?? "" ).trim() || null;
-        ops.push( prisma.settings.upsert( { where: { userId: user.id }, update: { planNote: note }, create: { userId: user.id, planNote: note } } ) );
-        await prisma.$transaction( ops );
+            // derive each goal's monthly amount from phase 1 so goal screens agree with the plan
+            const [ accounts, loans, settings ] = await Promise.all( [
+                tx.account.findMany( { where: { userId: user.id }, include: { goal: { select: { id: true, name: true, kind: true, status: true } } } } ),
+                tx.loan.findMany( { where: { userId: user.id }, include: { payments: true } } ),
+                tx.settings.findUnique( { where: { userId: user.id } } ),
+            ] );
+            const r = simulatePlan( surplusOf( settings ), buildDebts( loans ), buildGoalLines( goals, accounts ), clean );
+            const first = r.phases[ 0 ];
+            for ( const g of goals ) {
+                if ( g.status !== "ACTIVE" ) continue;
+                await tx.goal.update( { where: { id: g.id }, data: { monthlyPlan: first?.amounts[ g.id ] ?? 0 } } );
+            }
+        } );
         invalidateUser( user.id ); revalidatePath( "/", "layout" );
         return { ok: true };
     } catch ( e ) { return fail( e ); }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useData } from "@/components/shell/data-provider";
-import { NavLink } from "@/lib/view";
 import { loanOutstanding, loanPaid } from "@/lib/finance";
 import { LOAN_DIRECTIONS } from "@/lib/constants";
 import { fmtDate, inr, relativeDays, daysBetween } from "@/lib/money";
@@ -21,7 +20,6 @@ export function LoanDetailView( { id }: { id: string } ) {
     const lent = loan.direction === "LENT";
     const overdue = loan.status === "ACTIVE" && loan.dueDate && daysBetween( new Date(), loan.dueDate ) < 0;
     const monthsToClear = loan.emi && out > 0 ? Math.ceil( out / loan.emi ) : null;
-    const overflow = loan.overflowGoalId ? all.goals.find( g => g.id === loan.overflowGoalId ) : null;
 
     return (
         <div>
@@ -44,7 +42,6 @@ export function LoanDetailView( { id }: { id: string } ) {
                 <Stat label="Given on" value={ fmtDate( loan.startDate ) } />
                 { loan.interestRate ? <Stat label="Interest" value={ `${loan.interestRate}% p.a.` } sub={ `≈ ${inr( Math.round( out * loan.interestRate / 100 / 12 ) )}/mo on outstanding` } /> : <Stat label="Interest" value="None" /> }
                 { loan.emi ? <Stat label="EMI" value={ inr( loan.emi ) } sub={ monthsToClear ? `${monthsToClear} more month${monthsToClear === 1 ? "" : "s"}` : undefined } /> : null }
-                { !lent && loan.status === "ACTIVE" && <Stat label="Once cleared, EMI goes to" value={ <span className="text-base">{ overflow ? `${overflow.emoji ?? ""} ${overflow.name}`.trim() : "Long-term wealth" }</span> } sub={ <NavLink to={ { tab: "plan" } } className="text-primary underline-offset-2 hover:underline">Change in Plan</NavLink> } /> }
                 { loan.closedAt && <Stat label="Settled on" value={ fmtDate( loan.closedAt ) } /> }
             </div>
 

@@ -36,7 +36,7 @@ export function OnboardingForm( { settings }: { settings: Settings | null } ) {
                     <Field label="Monthly take-home" hint="Salary after tax">
                         <input type="number" inputMode="numeric" name="monthlyIncome" value={ income || "" } onChange={ e => setIncome( Number( e.target.value ) || 0 ) } placeholder="170000" required autoFocus className={ `${inputCls} tabular` } />
                     </Field>
-                    <Field label="Monthly expenses" hint="Rent, food, bills, parents' insurance — anything you won't track">
+                    <Field label="Monthly expenses" hint="Rent, food, bills, parents' insurance: anything you won't track">
                         <input type="number" inputMode="numeric" name="monthlyExpense" value={ expense || "" } onChange={ e => setExpense( Number( e.target.value ) || 0 ) } placeholder="64000" required className={ `${inputCls} tabular` } />
                     </Field>
                 </Row>

@@ -7,7 +7,7 @@ import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { invalidateUser } from "@/lib/data";
 import { ACCOUNT_TYPES } from "@/lib/constants";
-import { suggestSplit, type PlanLine } from "@/lib/plan";
+import { normalise, type Shares } from "@/lib/plan";
 import { type ActionResult, fail, optInt, optStr, parseForm, reqInt } from "./_shared";
 
 const schema = z.object( {
@@ -67,22 +67,23 @@ export async function completeOnboarding( _: ActionResult | null, fd: FormData )
             if ( health && has( d.starters, "healthFd" ) ) await mkAccount( "Health fund RD", "RD", { goalId: health.id } );
             if ( fun && has( d.starters, "funFd" ) ) await mkAccount( "Fun fund RD", "RD", { goalId: fun.id } );
 
-            let debtId: string | null = null;
             if ( d.debtAmount && d.debtAmount > 0 ) {
-                const l = await tx.loan.create( { data: { userId: user!.id, direction: "BORROWED", counterparty: d.debtTo ?? "Debt", principal: d.debtAmount, emi: d.debtEmi ?? null, overflowGoalId: jobLoss?.id ?? null } } );
-                debtId = l.id;
+                await tx.loan.create( { data: { userId: user!.id, direction: "BORROWED", counterparty: d.debtTo ?? "Debt", principal: d.debtAmount, emi: d.debtEmi ?? Math.round( surplus * 0.25 ) } } );
             }
 
-            // A first split so the Plan screen isn't empty. Debt first, then 40% wealth / 60% safety by size and priority.
-            const lines: PlanLine[] = [];
-            if ( debtId ) lines.push( { id: `loan:${debtId}`, name: "debt", emoji: "", kind: "debt", target: d.debtAmount!, current: 0, monthly: d.debtEmi ?? 0, overflowId: null, priority: 0 } );
-            for ( const g of [ wealth, jobLoss, health, fun ] ) if ( g ) lines.push( { id: g.id, name: g.name, emoji: "", kind: g.kind === "WEALTH" ? "wealth" : "goal", target: g.target, current: 0, monthly: 0, overflowId: null, priority: g.priority } );
-            const split = suggestSplit( lines, surplus );
-            for ( const g of [ wealth, jobLoss, health, fun ] ) if ( g && split[ g.id ] != null ) await tx.goal.update( { where: { id: g.id }, data: { monthlyPlan: split[ g.id ] } } );
-            if ( debtId && split[ `loan:${debtId}` ] != null ) await tx.loan.update( { where: { id: debtId }, data: { emi: split[ `loan:${debtId}` ] || null } } );
-            // overflow chain: job-loss → health → fun → wealth(default)
-            if ( jobLoss && health ) await tx.goal.update( { where: { id: jobLoss.id }, data: { overflowGoalId: health.id } } );
-            if ( health && fun ) await tx.goal.update( { where: { id: health.id }, data: { overflowGoalId: fun.id } } );
+            // Phase 1: safety leads, SIPs never stop. Editable on the Plan tab.
+            const want: Shares = {};
+            if ( jobLoss ) want[ jobLoss.id ] = 30;
+            if ( health ) want[ health.id ] = 25;
+            if ( fun ) want[ fun.id ] = 10;
+            if ( wealth ) want[ wealth.id ] = 35;
+            const ids = Object.keys( want );
+            if ( ids.length ) {
+                const shares = normalise( want, ids );
+                await tx.planPhase.create( { data: { userId: user!.id, order: 1, shares } } );
+                const pool = Math.max( 0, surplus - ( d.debtAmount && d.debtAmount > 0 ? ( d.debtEmi ?? Math.round( surplus * 0.25 ) ) : 0 ) );
+                for ( const id of ids ) await tx.goal.update( { where: { id }, data: { monthlyPlan: Math.round( ( pool * shares[ id ] ) / 100 ) } } );
+            }
         } );
     } catch ( e ) { return fail( e ); }
     invalidateUser( user.id ); revalidatePath( "/", "layout" );

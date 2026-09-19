@@ -1,28 +1,31 @@
-import type { Goal, Settings } from "@/generated/prisma/client";
+import type { Goal, PlanPhase, Settings } from "@/generated/prisma/client";
 import type { AccountWithGoal, LoanWithPayments } from "@/lib/finance";
-import { loanOutstanding, loanPaid } from "@/lib/finance";
+import { loanOutstanding } from "@/lib/finance";
 import { GOAL_KINDS } from "@/lib/constants";
-import type { PlanLine } from "@/lib/plan";
+import { simulatePlan, type DebtLine, type GoalLine, type Shares } from "@/lib/plan";
 
-export const loanLineId = ( id: string ) => `loan:${id}`;
-export const isLoanLine = ( id: string ) => id.startsWith( "loan:" );
-
-/** Turn goals + borrowed loans into plan lines. Current amounts come from linked accounts / repayments. */
-export function buildPlanLines( goals: Goal[], accounts: AccountWithGoal[], loans: LoanWithPayments[] ): PlanLine[] {
-    const lines: PlanLine[] = [];
-    for ( const l of loans ) {
-        if ( l.status !== "ACTIVE" || l.direction !== "BORROWED" || loanOutstanding( l ) <= 0 ) continue;
-        lines.push( { id: loanLineId( l.id ), name: `Repay ${l.counterparty}`, emoji: "💳", kind: "debt", target: l.principal, current: loanPaid( l ), monthly: l.emi ?? 0, overflowId: l.overflowGoalId, priority: 0 } );
-    }
-    for ( const g of goals ) {
-        if ( g.status !== "ACTIVE" ) continue;
-        const linked = accounts.filter( a => a.goalId === g.id && !a.archived );
-        const current = linked.reduce( ( s, a ) => s + a.balance, 0 );
-        const sip = linked.reduce( ( s, a ) => s + ( a.sipAmount ?? 0 ), 0 );
-        lines.push( { id: g.id, name: g.name, emoji: g.emoji ?? GOAL_KINDS[ g.kind ].emoji, kind: g.kind === "WEALTH" ? "wealth" : "goal", target: g.target, current, monthly: g.monthlyPlan ?? sip, overflowId: g.overflowGoalId, priority: g.priority } );
-    }
-    return lines;
+export function buildDebts( loans: LoanWithPayments[] ): DebtLine[] {
+    return loans
+        .filter( l => l.status === "ACTIVE" && l.direction === "BORROWED" && loanOutstanding( l ) > 0 )
+        .map( l => ( { id: l.id, name: l.counterparty, outstanding: loanOutstanding( l ), monthly: l.emi ?? 0 } ) );
 }
+
+export function buildGoalLines( goals: Goal[], accounts: AccountWithGoal[] ): GoalLine[] {
+    return goals
+        .filter( g => g.status === "ACTIVE" )
+        .map( g => {
+            const current = accounts.filter( a => a.goalId === g.id && !a.archived ).reduce( ( s, a ) => s + a.balance, 0 );
+            return { id: g.id, name: g.name, emoji: g.emoji ?? GOAL_KINDS[ g.kind ].emoji, remaining: Math.max( 0, g.target - current ), isWealth: g.kind === "WEALTH" };
+        } );
+}
+
+export const phaseShares = ( phases: PlanPhase[] ): Shares[] =>
+    [ ...phases ].sort( ( a, b ) => a.order - b.order ).map( p => ( p.shares ?? {} ) as Shares );
 
 export const surplusOf = ( s: Pick<Settings, "monthlyIncome" | "monthlyExpense"> | null | undefined ) =>
     Math.max( 0, ( s?.monthlyIncome ?? 0 ) - ( s?.monthlyExpense ?? 0 ) );
+
+/** One call for screens that only need the result. */
+export function planFor( goals: Goal[], accounts: AccountWithGoal[], loans: LoanWithPayments[], phases: PlanPhase[], settings: Settings | null | undefined ) {
+    return simulatePlan( surplusOf( settings ), buildDebts( loans ), buildGoalLines( goals, accounts ), phaseShares( phases ) );
+}

@@ -40,7 +40,7 @@ export function AppShell( { initial, user }: { initial: Everything; user: Sessio
     );
 }
 
-/** Which component to show. Pure swap — no network. */
+/** Which component to show. Pure swap: no network. */
 function Screen() {
     const v = useView();
     switch ( v.tab ) {

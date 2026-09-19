@@ -84,13 +84,13 @@ export function AccountForm( { account, goals, defaultGoalId, onDone }: { accoun
                 <Row>
                     <Field label="Funds which goal?" hint="Money here counts toward that goal.">
                         <Select name="goalId" defaultValue={ account?.goalId ?? defaultGoalId ?? "" }>
-                            <option value="">None — free money</option>
+                            <option value="">None: free money</option>
                             { goals.map( g => <option key={ g.id } value={ g.id }>{ g.emoji ? `${g.emoji} ` : "" }{ g.name }</option> ) }
                         </Select>
                     </Field>
                     <Field label="Liquidity">
                         <Select name="liquidity" key={ type } defaultValue={ account?.type === type ? account.liquidity : meta.liquidity }>
-                            { ( Object.keys( LIQUIDITY ) as ( keyof typeof LIQUIDITY )[] ).map( k => <option key={ k } value={ k }>{ LIQUIDITY[ k ].label } — { LIQUIDITY[ k ].hint }</option> ) }
+                            { ( Object.keys( LIQUIDITY ) as ( keyof typeof LIQUIDITY )[] ).map( k => <option key={ k } value={ k }>{ LIQUIDITY[ k ].label }: { LIQUIDITY[ k ].hint }</option> ) }
                         </Select>
                     </Field>
                 </Row>

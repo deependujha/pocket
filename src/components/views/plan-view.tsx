@@ -2,28 +2,30 @@
 
 import { useData } from "@/components/shell/data-provider";
 import { NavLink } from "@/lib/view";
-import { buildPlanLines, surplusOf } from "@/lib/plan-lines";
+import { buildDebts, buildGoalLines, phaseShares, surplusOf } from "@/lib/plan-lines";
 import { PageHeader } from "@/components/ui/page";
 import { PlanEditor } from "@/components/plan/plan-editor";
 
 export function PlanView() {
-    const { data: { accounts, goals, loans, settings } } = useData();
-    const lines = buildPlanLines( goals, accounts.filter( a => !a.archived ), loans );
+    const { data: { accounts, goals, loans, settings, phases } } = useData();
+    const live = accounts.filter( a => !a.archived );
     const surplus = surplusOf( settings );
-    const goalOptions = goals.filter( g => g.status === "ACTIVE" ).map( g => ( { id: g.id, name: g.name, emoji: g.emoji } ) );
-    // Remount the editor when the saved plan changes, so its local edits start from what's stored.
-    const key = lines.map( l => `${l.id}:${l.monthly}:${l.overflowId ?? ""}` ).join( "|" ) + `|${surplus}|${settings?.planNote ?? ""}`;
+    const debts = buildDebts( loans );
+    const goalLines = buildGoalLines( goals, live );
+    const saved = phaseShares( phases );
+    // Remount the editor when what's saved changes, so edits always start from the stored plan.
+    const key = JSON.stringify( [ saved, debts.map( d => [ d.id, d.monthly ] ), goalLines.map( g => g.id ), surplus ] );
 
     return (
         <div>
-            <PageHeader title="Plan" subtitle="Where each month's surplus goes, and what happens when a goal fills up." />
+            <PageHeader title="Plan" subtitle="Debts first. Then split what's left." />
             { surplus <= 0 && (
                 <div className="card mb-4 p-4 text-sm">
-                    <div className="font-medium">No surplus to plan with yet.</div>
-                    <p className="mt-1 text-muted-foreground">Set your monthly take-home and expenses under <NavLink to={ { tab: "more" } } className="text-primary underline-offset-2 hover:underline">More</NavLink>. Surplus = take-home − expenses.</p>
+                    <div className="font-medium">Nothing to split yet.</div>
+                    <p className="mt-1 text-muted-foreground">Set take-home and expenses under <NavLink to={ { tab: "more" } } className="text-primary underline-offset-2 hover:underline">More</NavLink>.</p>
                 </div>
             ) }
-            <PlanEditor key={ key } lines={ lines } surplus={ surplus } income={ settings?.monthlyIncome ?? 0 } expense={ settings?.monthlyExpense ?? 0 } goalOptions={ goalOptions } note={ settings?.planNote ?? "" } />
+            <PlanEditor key={ key } surplus={ surplus } debts={ debts } goals={ goalLines } saved={ saved } />
         </div>
     );
 }

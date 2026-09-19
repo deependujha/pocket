@@ -22,21 +22,10 @@ What actually matters is the structure: is there an emergency fund, is the card 
 
 **Loans** are money you lent or borrowed, with repayments. Lent money is an asset you can't spend. Borrowed money and card dues are subtracted from net worth.
 
-**The Plan** is the point of the app. Surplus = take-home − expenses (expenses include everything you don't want to track, like parents' insurance). You assign a monthly amount to each goal and each debt, and pick where that amount goes once the line is done ("overflow"). Pocket simulates month by month and derives the phases:
+**The Plan** is the point of the app. Surplus is take-home minus expenses (expenses include everything you don't want to track, like parents' insurance). Debts are paid first, off the top. What's left is split by percentages you set with sliders; move one and the others rebalance. A phase ends when a goal fills up. The next phase is yours to decide: Pocket shows the same split carried forward among the goals still open and asks you to confirm or adjust. Adding a goal flags the current phase until it has a share. Later phases stay hidden until their turn.
 
-> Phase 1: ₹35K job-loss cover, ₹20K health, ₹8.6K fun, ₹42.4K SIPs → ends when job-loss cover is funded (~14 mo)
-> Phase 2: the ₹35K rolls into health → ends when health is funded
-> Phase 3: everything flows to long-term SIPs
-
-Nothing in that is typed in. Change an amount and the phases, completion dates and steady state recompute as you type. "Suggest a split" drafts a 40% long-term / 60% safety split weighted by what's left to fund; edit from there.
-
-**Buckets.** Every rupee of assets lands in exactly one of five jobs: Emergency, Long-term, Goals, Free cash, Lent out. The overview shows this as one bar.
-
-**Health score (0–100)** answers "how secure am I?":
-
-| Component | Max | Full marks when |
-|---|---|---|
-| Emergency runway | 30 | Job-loss-cover balances cover N months of expenses (default 6) |
+---|---|---|
+| Runway | 30 | Job-loss cover holds N months of expenses (default 6) |
 | Cash buffer | 15 | One month of expenses free in liquid accounts after card dues |
 | Debt load | 20 | Nothing owed (drops to 0 at 50% of assets) |
 | Investing | 20 | 20% of income goes to SIPs, or 40% of assets are invested |
@@ -48,16 +37,16 @@ Each component shows what it measured and one thing that would raise it.
 
 ## Screens
 
-- **Overview**: net worth with 30-day delta, health ring, this month's split, allocation bar, net-worth line, active goals, and "coming up" (FD maturities, loan due dates, goal deadlines within ~60 days).
-- **Plan**: the monthly split editor with live phases (above).
+- **Overview**: net worth with a small trend line, the security ring, this month's split, three goals, and the next three dates.
+- **Plan**: debts, then percentage sliders per phase, with completion months computed as you drag.
 - **Goals**: progress meters with an expected-pace marker; detail page has a path-to-target projection and the accounts funding it.
 - **Money**: accounts and loans under one tab. Accounts are grouped by type with sparklines; detail page has balance history, FD maturity value, SIP cost vs value, and a balance-update sheet (deposit / withdraw / interest / market / set).
-  Loans: lent vs borrowed, repayments, auto-close when fully repaid; a borrowed loan's EMI is a plan line.
-- **More**: your monthly numbers, theme, a short guide, JSON export, sign out.
+  Loans: lent vs borrowed, repayments, auto-close when repaid. A borrowed loan's monthly payment comes off the top of the plan.
+- **More**: Settings (your numbers, theme, export, sign out) and Info (how Pocket thinks about money, how the score is built).
 
 The view lives in the URL (`/?tab=goals&id=…`) so reloads and the back button work, but switching never asks the server for anything.
 
-First sign-in runs a one-screen setup: income, expenses, targets for job-loss cover / health emergency / fun fund, an optional existing debt, and starter accounts. It drafts a first split and lands you on the Plan.
+First sign-in asks for income, expenses, targets for job-loss cover, health fund and fun fund, an optional debt, and starter accounts. It sets a first split and opens the Plan.
 
 ---
 

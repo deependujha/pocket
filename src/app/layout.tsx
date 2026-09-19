@@ -10,7 +10,7 @@ const geistMono = Geist_Mono( { variable: "--font-geist-mono", subsets: [ "latin
 
 export const metadata: Metadata = {
     title: { default: "Pocket", template: "%s · Pocket" },
-    description: "Your money, in one place. Emergency fund, goals, SIPs, loans — entered by you, stored in your own database.",
+    description: "Your money, in one place. Emergency fund, goals, SIPs, loans: entered by you, stored in your own database.",
     icons: {
         icon: [
             { url: "/favicon/favicon-16x16.png", sizes: "16x16", type: "image/png" },

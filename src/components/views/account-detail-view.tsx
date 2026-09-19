@@ -46,7 +46,7 @@ export function AccountDetailView( { id }: { id: string } ) {
 
             { ( gain != null || fd || account.sipAmount ) && (
                 <div className="mt-4 grid grid-cols-2 gap-3">
-                    { gain != null && account.invested != null && <Stat label="Invested" value={ inr( account.invested ) } sub={ <span className={ gain >= 0 ? "text-status-good-text" : "text-status-critical-text" }>{ inrDelta( gain ) } ({ account.invested > 0 ? `${( ( gain / account.invested ) * 100 ).toFixed( 1 )}%` : "—" })</span> } /> }
+                    { gain != null && account.invested != null && <Stat label="Invested" value={ inr( account.invested ) } sub={ <span className={ gain >= 0 ? "text-status-good-text" : "text-status-critical-text" }>{ inrDelta( gain ) } ({ account.invested > 0 ? `${( ( gain / account.invested ) * 100 ).toFixed( 1 )}%` : ", " })</span> } /> }
                     { account.sipAmount ? <Stat label="Monthly contribution" value={ inr( account.sipAmount ) } sub={ account.sipDay ? `On the ${account.sipDay}th` : undefined } /> : null }
                     { fd && account.maturityDate && <Stat label="At maturity" value={ inr( fd.maturity ) } sub={ `${fmtDate( account.maturityDate )} · ${relativeDays( account.maturityDate )}` } /> }
                     { fd && account.maturityDate && daysBetween( new Date(), account.maturityDate ) > 0 && <Stat label="Accrued so far" value={ inr( fd.accrued ) } sub={ `${account.interestRate}% p.a. · ${fd.accrued !== account.balance ? `balance is ${inrDelta( account.balance - fd.accrued )} off` : "matches balance"}` } /> }

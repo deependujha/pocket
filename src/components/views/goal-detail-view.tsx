@@ -26,7 +26,6 @@ export function GoalDetailView( { id }: { id: string } ) {
     const goalOpts = [ { id: goal.id, name: goal.name, emoji: goal.emoji } ];
     const goalOptsAll = all.goals.filter( g => g.status === "ACTIVE" ).map( g => ( { id: g.id, name: g.name, emoji: g.emoji } ) );
     const done = p.current >= goal.target;
-    const overflow = goal.overflowGoalId ? all.goals.find( g => g.id === goal.overflowGoalId ) : null;
 
     return (
         <div>
@@ -55,7 +54,6 @@ export function GoalDetailView( { id }: { id: string } ) {
                 { p.neededPerMonth != null && !done && <Stat label="Needed per month" value={ inr( p.neededPerMonth ) } sub={ p.monthly > 0 ? `You plan ${inr( p.monthly )}` : "Set a monthly plan" } /> }
                 { p.neededPerMonth == null && p.monthly > 0 && !done && <Stat label="Monthly plan" value={ inr( p.monthly ) } sub={ p.projectedDate ? `Done by ~${fmtDate( p.projectedDate, { month: "short", year: "numeric" } )}` : undefined } /> }
                 { p.projectedDate && p.neededPerMonth != null && !done && <Stat label="At current pace" value={ fmtDate( p.projectedDate, { month: "short", year: "numeric" } ) } sub={ goal.targetDate && p.projectedDate > goal.targetDate ? "Later than the deadline" : "Before the deadline" } /> }
-                { goal.kind !== "WEALTH" && <Stat label="When funded, money goes to" value={ <span className="text-base">{ overflow ? `${overflow.emoji ?? ""} ${overflow.name}`.trim() : "Long-term wealth" }</span> } sub={ <NavLink to={ { tab: "plan" } } className="text-primary underline-offset-2 hover:underline">Change in Plan</NavLink> } /> }
             </div>
 
             { goal.note && <p className="mt-4 rounded-xl bg-card px-4 py-3 text-sm italic text-foreground/75 ring-1 ring-border">“{ goal.note }”</p> }

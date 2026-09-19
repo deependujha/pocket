@@ -10,9 +10,8 @@ import { LOAN_DIRECTIONS } from "@/lib/constants";
 import { toInputDate } from "@/lib/money";
 import { Field, FormError, MoneyInput, Row, SubmitButton, inputCls } from "@/components/ui/form-bits";
 import { Textarea } from "@/components/ui/textarea";
-import { Select } from "@/components/ui/select";
 
-export function LoanForm( { loan, goals = [], onDone }: { loan?: Loan; goals?: { id: string; name: string; emoji: string | null }[]; onDone?: ( id?: string ) => void } ) {
+export function LoanForm( { loan, onDone }: { loan?: Loan; goals?: { id: string; name: string; emoji: string | null }[]; onDone?: ( id?: string ) => void } ) {
     const [ dir, setDir ] = useState<LoanDirection>( loan?.direction ?? "LENT" );
     const fn = loan ? updateLoan.bind( null, loan.id ) : createLoan;
     const [ state, action ] = useActionState( async ( prev: ActionResult | null, fd: FormData ) => {
@@ -56,18 +55,10 @@ export function LoanForm( { loan, goals = [], onDone }: { loan?: Loan; goals?: {
                 <Field label="Interest % p.a." hint="Blank = interest free">
                     <input type="number" step="0.01" inputMode="decimal" name="interestRate" defaultValue={ loan?.interestRate ?? "" } className={ `${inputCls} tabular` } />
                 </Field>
-                <Field label="Monthly EMI" hint="Optional">
+                <Field label="Per month" hint="Paid before the split">
                     <MoneyInput name="emi" defaultValue={ loan?.emi ?? null } min={ 0 } />
                 </Field>
             </Row>
-            { dir === "BORROWED" && goals.length > 0 && (
-                <Field label="Once cleared, send the EMI to" hint="Default: long-term wealth.">
-                    <Select name="overflowGoalId" defaultValue={ loan?.overflowGoalId ?? "" }>
-                        <option value="">Default (long-term wealth)</option>
-                        { goals.map( g => <option key={ g.id } value={ g.id }>{ g.emoji ? `${g.emoji} ` : "" }{ g.name }</option> ) }
-                    </Select>
-                </Field>
-            ) }
             <Field label="Note" hint="Optional">
                 <Textarea name="note" defaultValue={ loan?.note ?? "" } rows={ 2 } />
             </Field>

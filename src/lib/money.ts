@@ -7,7 +7,7 @@ const inrFull = new Intl.NumberFormat( "en-IN", {
 /** ₹1,50,000 */
 export const inr = ( n: number ) => inrFull.format( Math.round( n ) );
 
-/** ₹1.5L, ₹2.3Cr, ₹12K — for tight spaces and axis ticks */
+/** ₹1.5L, ₹2.3Cr, ₹12K: for tight spaces and axis ticks */
 export const inrCompact = ( n: number ) => {
     const abs = Math.abs( n );
     const sign = n < 0 ? "-" : "";

@@ -18,7 +18,7 @@ export default async function LoginPage() {
                 </div>
                 <h1 className="text-3xl font-semibold tracking-tight">Pocket</h1>
                 <p className="mt-2 text-balance text-sm text-muted-foreground">
-                    Emergency fund, goals, SIPs and loans — one calm view of where you stand.
+                    Emergency fund, goals, SIPs and loans: one calm view of where you stand.
                 </p>
                 <SignInButton />
                 <p className="mt-6 max-w-xs text-xs text-muted-foreground/75">
