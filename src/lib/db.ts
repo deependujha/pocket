@@ -16,7 +16,7 @@ const globalForPrisma = globalThis as unknown as {
  * adds a model, that cached instance is stale (e.g. prisma.planPhase is undefined),
  * so we check that every model we use exists before reusing it.
  */
-const MODELS = [ "user", "settings", "planPhase", "account", "movement", "goal", "loan", "loanPayment" ] as const;
+const MODELS = [ "user", "wishSection", "wish", "fund", "fundEntry", "loan", "loanPayment" ] as const;
 const isCurrent = ( c: PrismaClient | undefined ): c is PrismaClient =>
     !!c && MODELS.every( m => typeof ( c as unknown as Record<string, unknown> )[ m ] === "object" );
 

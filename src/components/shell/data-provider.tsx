@@ -11,6 +11,8 @@ type Ctx = {
     refreshing: boolean;
     /** Re-pull everything from the server. Call after any write. */
     refresh: () => Promise<void>;
+    /** Apply a change locally right away; the next refresh replaces it with the truth. */
+    patch: ( fn: ( d: Everything ) => Everything ) => void;
 };
 
 const DataCtx = createContext<Ctx | null>( null );
@@ -40,7 +42,11 @@ export function DataProvider( { initial, user, children }: { initial: Everything
         return () => { document.removeEventListener( "visibilitychange", onVisible ); window.removeEventListener( "focus", onVisible ); };
     }, [ refresh ] );
 
-    return <DataCtx.Provider value={ { data, user, refreshing, refresh } }>{ children }</DataCtx.Provider>;
+    // Called from inside form actions, which run in a React transition that holds updates
+    // until the action resolves. A macrotask steps out of that so the change paints now.
+    const patch = useCallback( ( fn: ( d: Everything ) => Everything ) => { setTimeout( () => setData( d => fn( d ) ), 0 ); }, [] );
+
+    return <DataCtx.Provider value={ { data, user, refreshing, refresh, patch } }>{ children }</DataCtx.Provider>;
 }
 
 export function useData() {
@@ -50,3 +56,4 @@ export function useData() {
 }
 
 export function useRefresh() { return useData().refresh; }
+export function usePatch() { return useData().patch; }

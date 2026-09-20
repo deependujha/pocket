@@ -17,10 +17,13 @@ body {
   --color-background: var(--background);
   --color-page: var(--page);
   --color-viz-1: var(--viz-1);
-  --color-viz-2: var(--viz-2);
-  --color-viz-3: var(--viz-3);
-  --color-viz-4: var(--viz-4);
-  --color-viz-5: var(--viz-5);
+  --color-wish: var(--wish);
+  --color-wish-soft: var(--wish-soft);
+  --color-fund: var(--fund);
+  --color-fund-soft: var(--fund-soft);
+  --color-loan: var(--loan);
+  --color-loan-soft: var(--loan-soft);
+  --color-me: var(--me);
   --color-status-good: var(--status-good);
   --color-status-good-text: var(--status-good-text);
   --color-status-warning: var(--status-warning);
@@ -32,11 +35,6 @@ body {
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -101,15 +99,18 @@ body {
   --input: rgba(18, 17, 24, 0.14);
   --ring: #8b5cf6;
 
-  /* Data-viz: violet leads, then the validated order */
+  /* Section hues: one colour per tab so things can be found by colour */
+  --wish: #db2777;
+  --wish-soft: #fce7f3;
+  --fund: #059669;
+  --fund-soft: #d1fae5;
+  --loan: #d97706;
+  --loan-soft: #fef3c7;
+  --me: #6d28d9;
+
+  /* Accent and status colours used by meters and badges */
   --viz-1: #4a3aa7;
-  --viz-2: #eb6834;
-  --viz-3: #1baf7a;
-  --viz-4: #eda100;
-  --viz-5: #e87ba4;
   --viz-8: #e34948;
-  --viz-grid: #e6e5ec;
-  --viz-axis: #c3c2cb;
   --viz-muted: #898791;
   --viz-track: #ecebf1;
 
@@ -123,11 +124,6 @@ body {
   --status-critical: #d03b3b;
   --status-critical-text: #a32020;
 
-  --chart-1: var(--viz-1);
-  --chart-2: var(--viz-2);
-  --chart-3: var(--viz-3);
-  --chart-4: var(--viz-4);
-  --chart-5: var(--viz-5);
 }
 
 .dark {
@@ -153,14 +149,16 @@ body {
   --input: rgba(243, 241, 249, 0.2);
   --ring: #a78bfa;
 
+  --wish: #f472b6;
+  --wish-soft: rgba(244, 114, 182, 0.16);
+  --fund: #34d399;
+  --fund-soft: rgba(52, 211, 153, 0.16);
+  --loan: #fbbf24;
+  --loan-soft: rgba(251, 191, 36, 0.16);
+  --me: #a78bfa;
+
   --viz-1: #9085e9;
-  --viz-2: #d95926;
-  --viz-3: #199e70;
-  --viz-4: #c98500;
-  --viz-5: #d55181;
   --viz-8: #e66767;
-  --viz-grid: #2b2a36;
-  --viz-axis: #444352;
   --viz-muted: #9a97a8;
   --viz-track: #2b2a36;
 
@@ -191,13 +189,44 @@ body {
 .card {
   @apply rounded-2xl border border-border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.03)];
 }
-.dark .card { box-shadow: 0 1px 0 rgba(255,255,255,0.03) inset; }
+.dark .card { box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px -18px rgba(0,0,0,0.8); }
+.dark body {
+  background:
+    radial-gradient(60% 40% at 50% -10%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%),
+    var(--page);
+  background-attachment: fixed;
+}
+body {
+  background:
+    radial-gradient(60% 40% at 50% -10%, color-mix(in oklab, var(--primary) 10%, transparent), transparent 70%),
+    var(--page);
+  background-attachment: fixed;
+}
 
-/* recharts: recessive chrome */
-.recharts-cartesian-grid-horizontal line { stroke: var(--viz-grid); }
-.recharts-cartesian-axis-line { stroke: var(--viz-axis); }
-.recharts-cartesian-axis-tick-value { fill: var(--viz-muted); font-size: 11px; }
-.recharts-tooltip-cursor { stroke: var(--viz-axis); }
+/* Press feedback everywhere, no JS needed */
+button, a.card, .pressable { transition: transform 120ms ease, background-color 150ms ease, opacity 150ms ease; }
+button:active, a.card:active, .pressable:active { transform: scale(0.97); }
+
+/* A moving sheen across a full progress bar */
+.meter-full::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(110deg, transparent 20%, rgba(255,255,255,0.45) 50%, transparent 80%);
+  background-size: 200% 100%;
+  animation: sheen 2.2s linear infinite;
+}
+@keyframes sheen { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* Tinted CTA buttons per section */
+.btn-wish { background: var(--wish); color: #fff; }
+.btn-fund { background: var(--fund); color: #052e1c; }
+.btn-loan { background: var(--loan); color: #3b2500; }
+.btn-wish:hover, .btn-fund:hover, .btn-loan:hover { filter: brightness(1.08); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
 
 /* hide number input spinners */
 input[type="number"]::-webkit-outer-spin-button,

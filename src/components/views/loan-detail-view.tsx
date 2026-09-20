@@ -1,67 +1,56 @@
 "use client";
 
 import { useData } from "@/components/shell/data-provider";
-import { loanOutstanding, loanPaid } from "@/lib/finance";
-import { LOAN_DIRECTIONS } from "@/lib/constants";
+import { loanLeft, loanPaid } from "@/lib/derive";
 import { fmtDate, inr, relativeDays, daysBetween } from "@/lib/money";
-import { PageHeader, Section, Stat, Empty } from "@/components/ui/page";
-import { Badge } from "@/components/ui/badge";
+import { PageHeader, Section, Empty } from "@/components/ui/page";
 import { Meter } from "@/components/ui/meter";
-import { Status } from "@/components/ui/status";
-import { AddPaymentButton, DeletePaymentButton, EditLoanButton, LoanActions } from "@/components/loans/loan-sheets";
+import { Badge } from "@/components/ui/badge";
+import { AddPaymentButton, DeletePaymentButton, EditLoanButton } from "@/components/loans/loan-sheets";
+import { Count, List, Item, Rise } from "@/components/shell/motion";
+import { AnimatePresence } from "motion/react";
 
 export function LoanDetailView( { id }: { id: string } ) {
-    const { data: all } = useData();
-    const loan = all.loans.find( l => l.id === id );
-    if ( !loan ) return <div><PageHeader back={ { tab: "money", sub: "loans" } } title="Loan" /><Empty title="This loan no longer exists" /></div>;
-    const goalOpts = all.goals.filter( g => g.status === "ACTIVE" ).map( g => ( { id: g.id, name: g.name, emoji: g.emoji } ) );
-    const out = loanOutstanding( loan );
+    const { data: { loans } } = useData();
+    const loan = loans.find( l => l.id === id );
+    if ( !loan ) return <div><PageHeader back={ { tab: "loans" } } title="Loan" /><Empty title="This loan no longer exists" /></div>;
+    const left = loanLeft( loan );
     const paid = loanPaid( loan );
     const lent = loan.direction === "LENT";
-    const overdue = loan.status === "ACTIVE" && loan.dueDate && daysBetween( new Date(), loan.dueDate ) < 0;
-    const monthsToClear = loan.emi && out > 0 ? Math.ceil( out / loan.emi ) : null;
+    const late = !loan.closed && loan.endDate && daysBetween( new Date(), loan.endDate ) < 0;
 
     return (
         <div>
-            <PageHeader back={ { tab: "money", sub: "loans" } } title={ loan.counterparty }
-                subtitle={ <span className="flex flex-wrap items-center gap-1.5"><Badge tone={ lent ? "good" : "critical" }>{ LOAN_DIRECTIONS[ loan.direction ].label }</Badge>{ loan.purpose && <Badge>{ loan.purpose }</Badge> }<Badge tone={ loan.status === "CLOSED" ? "neutral" : "info" }>{ loan.status.toLowerCase() }</Badge></span> }
-                action={ <EditLoanButton loan={ loan } goals={ goalOpts } /> } />
+            <PageHeader back={ { tab: "loans" } } title={ loan.name }
+                subtitle={ <span className="flex flex-wrap items-center gap-1.5"><Badge tone={ loan.closed ? "neutral" : lent ? "good" : "warning" }>{ loan.closed ? "settled" : lent ? "owes me" : "I owe" }</Badge>{ loan.note && <span className="text-muted-foreground">{ loan.note }</span> }</span> }
+                action={ <EditLoanButton loan={ loan } /> } />
 
-            <div className="card p-5">
-                <div className="text-xs text-muted-foreground">{ lent ? "They still owe you" : "You still owe" }</div>
-                <div className={ `mt-1 text-4xl font-semibold tracking-tight ${loan.status === "CLOSED" ? "text-muted-foreground/75" : lent ? "text-status-good-text" : "text-status-critical-text"}` }>{ inr( out ) }</div>
-                <Meter value={ loan.principal ? paid / loan.principal : 0 } className="mt-4" height={ 8 } color={ lent ? "var(--viz-5)" : "var(--viz-8)" } />
-                <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
-                    <span>{ inr( paid ) } of { inr( loan.principal ) } repaid</span>
-                    { loan.dueDate && loan.status === "ACTIVE" && ( overdue ? <Status tone="critical">Overdue since { fmtDate( loan.dueDate ) }</Status> : <Status tone="neutral" icon="clock">Due { relativeDays( loan.dueDate ) }</Status> ) }
+            <Rise className={ `card border-t-4 p-5 ${loan.closed ? "border-t-transparent" : lent ? "border-t-status-good" : "border-t-loan"}` }>
+                <div className="text-xs text-muted-foreground">{ loan.closed ? "Settled" : lent ? "Still owed to me" : "Still owe" }</div>
+                <div className={ `mt-1 text-[40px] font-semibold leading-none tracking-tight tabular ${loan.closed ? "text-muted-foreground/75" : lent ? "text-status-good-text" : "text-loan"}` }><Count value={ left } /></div>
+                <Meter value={ loan.amount ? paid / loan.amount : 0 } className="mt-4" height={ 10 } color={ lent ? "var(--status-good)" : "var(--loan)" } />
+                <div className="mt-2 flex justify-between text-sm text-muted-foreground">
+                    <span>{ inr( paid ) } of { inr( loan.amount ) }</span>
+                    { loan.endDate && !loan.closed && <span className={ late ? "text-status-critical-text" : "" }>{ late ? "Was due" : "Due" } { fmtDate( loan.endDate ) } · { relativeDays( loan.endDate ) }</span> }
                 </div>
-                { loan.status === "ACTIVE" && <div className="mt-4"><AddPaymentButton loan={ loan } outstanding={ out } /></div> }
-            </div>
+                { !loan.closed && <div className="mt-4"><AddPaymentButton loan={ loan } left={ left } /></div> }
+            </Rise>
 
-            <div className="mt-4 grid grid-cols-2 gap-3">
-                <Stat label="Given on" value={ fmtDate( loan.startDate ) } />
-                { loan.interestRate ? <Stat label="Interest" value={ `${loan.interestRate}% p.a.` } sub={ `≈ ${inr( Math.round( out * loan.interestRate / 100 / 12 ) )}/mo on outstanding` } /> : <Stat label="Interest" value="None" /> }
-                { loan.emi ? <Stat label="EMI" value={ inr( loan.emi ) } sub={ monthsToClear ? `${monthsToClear} more month${monthsToClear === 1 ? "" : "s"}` : undefined } /> : null }
-                { loan.closedAt && <Stat label="Settled on" value={ fmtDate( loan.closedAt ) } /> }
-            </div>
-
-            { loan.note && <p className="mt-4 rounded-xl bg-card px-4 py-3 text-sm text-foreground/75 ring-1 ring-border">{ loan.note }</p> }
-
-            <Section title="Repayments" className="mt-6">
-                { loan.payments.length === 0 ? <div className="card p-4 text-sm text-muted-foreground">No repayments yet.</div> : (
-                    <ul className="card divide-y divide-border">
+            <Section title="Payments" className="mt-6">
+                { loan.payments.length === 0 ? <div className="card px-4 py-5 text-center text-sm text-muted-foreground">Nothing paid yet.</div> : (
+                    <List className="card divide-y divide-border">
+                        <AnimatePresence initial={ false }>
                         { loan.payments.map( p => (
-                            <li key={ p.id } className="flex items-center gap-3 px-4 py-2.5 text-sm">
-                                <div className="min-w-0 flex-1"><div className="font-medium">{ p.note || "Repayment" }</div><div className="text-xs text-muted-foreground">{ fmtDate( p.date ) }</div></div>
-                                <div className="tabular font-medium">{ inr( p.amount ) }</div>
+                            <Item key={ p.id } className="flex items-center gap-3 px-4 py-3 text-sm">
+                                <div className="min-w-0 flex-1"><div className="truncate font-medium">{ p.note || "Payment" }</div><div className="text-xs text-muted-foreground">{ fmtDate( p.date ) }</div></div>
+                                <div className="tabular font-semibold">{ inr( p.amount ) }</div>
                                 <DeletePaymentButton id={ p.id } />
-                            </li>
+                            </Item>
                         ) ) }
-                    </ul>
+                        </AnimatePresence>
+                    </List>
                 ) }
             </Section>
-
-            <Section title="Manage"><LoanActions loan={ loan } /></Section>
         </div>
     );
 }
